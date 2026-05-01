@@ -5,7 +5,7 @@ st.set_page_config(page_title="MIS Dashboard", layout="wide")
 
 st.title("📊 MIS & Quality Dashboard")
 
-uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
+df = pd.read_excel("data.xlsx", sheet_name="Data")
 
 if uploaded_file:
 
