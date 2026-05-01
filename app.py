@@ -8,7 +8,7 @@ st.title("📊 MIS & Quality Dashboard")
 # ---------------- LOAD DATA ----------------
 df = pd.read_excel("Primary Analysis 042426.xlsx", sheet_name="Data")
 
-# ---------------- CLEAN COLUMN NAMES ----------------
+# ---------------- CLEAN COLUMNS ----------------
 df.columns = (
     df.columns.astype(str)
     .str.replace("\n", "", regex=True)
@@ -24,57 +24,43 @@ for col in df.columns:
         tf_col = col
         break
 
-# ---------------- CLEAN DATA ----------------
 if tf_col:
     df[tf_col] = df[tf_col].astype(str).str.strip().str.lower()
 
 if "NoGo/Go" in df.columns:
     df["NoGo/Go"] = df["NoGo/Go"].astype(str).str.strip().str.lower()
 
+# ================= BASE DATA (IMPORTANT FIX) =================
+base_df = df.copy()   # 🔥 ALWAYS FULL DATA (NO FILTER)
+
 # ================= FILTERS =================
 st.sidebar.header("🔍 Filters")
 
-# -------- ACCOUNT (EMPTY BY DEFAULT) --------
-if "Account_name" in df.columns:
-    account = st.sidebar.multiselect(
-        "Account",
-        options=sorted(df["Account_name"].dropna().unique()),
-        default=[]
-    )
-else:
-    account = []
+account = st.sidebar.multiselect(
+    "Account",
+    options=sorted(df["Account_name"].dropna().unique()) if "Account_name" in df.columns else [],
+    default=[]
+)
 
-# -------- DOCTOR --------
-if "Doctor" in df.columns:
-    doctor = st.sidebar.multiselect(
-        "Doctor",
-        options=sorted(df["Doctor"].dropna().unique()),
-        default=[]
-    )
-else:
-    doctor = []
+doctor = st.sidebar.multiselect(
+    "Doctor",
+    options=sorted(df["Doctor"].dropna().unique()) if "Doctor" in df.columns else [],
+    default=[]
+)
 
-# -------- USER --------
-if "Responsible_User_Name" in df.columns:
-    user = st.sidebar.multiselect(
-        "User",
-        options=sorted(df["Responsible_User_Name"].dropna().unique()),
-        default=[]
-    )
-else:
-    user = []
+user = st.sidebar.multiselect(
+    "User",
+    options=sorted(df["Responsible_User_Name"].dropna().unique()) if "Responsible_User_Name" in df.columns else [],
+    default=[]
+)
 
-# -------- T/F (ONLY DEFAULT FALSE) --------
-if tf_col:
-    tf_filter = st.sidebar.multiselect(
-        "T/F",
-        options=sorted(df[tf_col].dropna().unique()),
-        default=["false"] if "false" in df[tf_col].values else []
-    )
-else:
-    tf_filter = []
+tf_filter = st.sidebar.multiselect(
+    "T/F",
+    options=sorted(df[tf_col].dropna().unique()) if tf_col else [],
+    default=["false"] if tf_col else []
+)
 
-# ================= APPLY FILTERS =================
+# ================= FILTERED DATA (UI ONLY) =================
 filtered_df = df.copy()
 
 if account:
@@ -89,23 +75,20 @@ if user:
 if tf_col and tf_filter:
     filtered_df = filtered_df[filtered_df[tf_col].isin(tf_filter)]
 
-# ================= KPI LOGIC =================
-final_df = filtered_df.copy()
+# ================= KPI DATA (NO T/F IMPACT ON TOTAL) =================
+kpi_df = filtered_df.copy()
 
-total_audited_files = final_df["File_name"].nunique() if "File_name" in final_df.columns else 0
+# ---------------- KPI ----------------
+total_audited_files = kpi_df["File_name"].nunique() if "File_name" in kpi_df.columns else 0
 
-go_files = final_df[
-    final_df["NoGo/Go"] == "go"
-]["File_name"].nunique() if "NoGo/Go" in final_df.columns else 0
+go_files = kpi_df[kpi_df["NoGo/Go"] == "go"]["File_name"].nunique() if "NoGo/Go" in kpi_df.columns else 0
 
-nogo_files = final_df[
-    final_df["NoGo/Go"] == "nogo"
-]["File_name"].nunique() if "NoGo/Go" in final_df.columns else 0
+nogo_files = kpi_df[kpi_df["NoGo/Go"] == "nogo"]["File_name"].nunique() if "NoGo/Go" in kpi_df.columns else 0
 
 go_percent = round((go_files / total_audited_files) * 100, 2) if total_audited_files else 0
 nogo_percent = round((nogo_files / total_audited_files) * 100, 2) if total_audited_files else 0
 
-# ================= KPI UI =================
+# ================= UI =================
 st.subheader("📌 KPI Summary")
 
 col1, col2, col3, col4, col5 = st.columns(5)
@@ -118,16 +101,16 @@ col5.metric("NoGo %", nogo_percent)
 
 # ================= TABLE =================
 st.subheader("📄 Detailed Data Table")
-st.dataframe(final_df, use_container_width=True)
+st.dataframe(filtered_df, use_container_width=True)
 
 # ================= CHARTS =================
 st.subheader("📊 Analysis")
 
-if "Doctor" in final_df.columns:
-    st.bar_chart(final_df["Doctor"].value_counts())
+if "Doctor" in filtered_df.columns:
+    st.bar_chart(filtered_df["Doctor"].value_counts())
 
-if "Account_name" in final_df.columns:
-    st.bar_chart(final_df["Account_name"].value_counts())
+if "Account_name" in filtered_df.columns:
+    st.bar_chart(filtered_df["Account_name"].value_counts())
 
-if "Responsible_User_Name" in final_df.columns:
-    st.bar_chart(final_df["Responsible_User_Name"].value_counts())
+if "Responsible_User_Name" in filtered_df.columns:
+    st.bar_chart(filtered_df["Responsible_User_Name"].value_counts())
