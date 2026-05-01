@@ -5,8 +5,8 @@ st.set_page_config(page_title="MIS Dashboard", layout="wide")
 
 st.title("📊 MIS & Quality Dashboard")
 
-# ---------------- DATA LOAD (FIXED FILE) ----------------
-df = pd.read_excel("data.xlsx", sheet_name="Data")
+# ---------------- LOAD CORRECT FILE ----------------
+df = pd.read_excel("Primary Analysis 042426.xlsx", sheet_name="Data")
 
 # ---------------- CLEAN COLUMN NAMES ----------------
 df.columns = (
@@ -74,11 +74,11 @@ else:
 total_audited_files = df_false["File_name"].nunique() if "File_name" in df_false.columns else 0
 
 go_files = df_false[
-    df_false["NoGo/Go"].str.strip() == "go"
+    df_false["NoGo/Go"] == "go"
 ]["File_name"].nunique() if "NoGo/Go" in df_false.columns else 0
 
 nogo_files = df_false[
-    df_false["NoGo/Go"].str.strip() == "nogo"
+    df_false["NoGo/Go"] == "nogo"
 ]["File_name"].nunique() if "NoGo/Go" in df_false.columns else 0
 
 go_percent = round((go_files / total_audited_files) * 100, 2) if total_audited_files else 0
