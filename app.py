@@ -14,8 +14,7 @@ if uploaded_file:
 
     # ---------------- CLEAN COLUMN NAMES ----------------
     df.columns = (
-        df.columns
-        .astype(str)
+        df.columns.astype(str)
         .str.replace("\n", "", regex=True)
         .str.replace("\t", "", regex=True)
         .str.replace("\r", "", regex=True)
@@ -66,15 +65,15 @@ if uploaded_file:
     if user != "All" and "Responsible_User_Name" in df.columns:
         filtered_df = filtered_df[filtered_df["Responsible_User_Name"] == user]
 
-    # ---------------- KPI LOGIC ----------------
-    base_df = df.copy()
+    # ---------------- KPI LOGIC (FIXED CONNECTED VERSION) ----------------
+    final_df = filtered_df.copy()
 
     if tf_col:
-        df_false = base_df[
-            base_df[tf_col].astype(str).str.contains("false|0|no", na=False)
+        df_false = final_df[
+            final_df[tf_col].astype(str).str.contains("false|0|no", na=False)
         ]
     else:
-        df_false = base_df.copy()
+        df_false = final_df.copy()
 
     total_audited_files = df_false["File_name"].nunique() if "File_name" in df_false.columns else 0
 
@@ -101,16 +100,16 @@ if uploaded_file:
 
     # ---------------- TABLE ----------------
     st.subheader("📄 Detailed Data Table")
-    st.dataframe(filtered_df, use_container_width=True)
+    st.dataframe(final_df, use_container_width=True)
 
     # ---------------- CHARTS ----------------
     st.subheader("📊 Analysis")
 
-    if "Doctor" in filtered_df.columns:
-        st.bar_chart(filtered_df["Doctor"].value_counts())
+    if "Doctor" in final_df.columns:
+        st.bar_chart(final_df["Doctor"].value_counts())
 
-    if "Account_name" in filtered_df.columns:
-        st.bar_chart(filtered_df["Account_name"].value_counts())
+    if "Account_name" in final_df.columns:
+        st.bar_chart(final_df["Account_name"].value_counts())
 
-    if "Responsible_User_Name" in filtered_df.columns:
-        st.bar_chart(filtered_df["Responsible_User_Name"].value_counts())
+    if "Responsible_User_Name" in final_df.columns:
+        st.bar_chart(final_df["Responsible_User_Name"].value_counts())
