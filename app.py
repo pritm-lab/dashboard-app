@@ -8,7 +8,7 @@ st.title("📊 MIS & Quality Dashboard")
 # ---------------- LOAD DATA ----------------
 df = pd.read_excel("Primary Analysis 042426.xlsx", sheet_name="Data")
 
-# ---------------- CLEAN COLUMNS ----------------
+# ---------------- CLEAN COLUMN NAMES ----------------
 df.columns = (
     df.columns.astype(str)
     .str.replace("\n", "", regex=True)
@@ -31,10 +31,10 @@ if tf_col:
 if "NoGo/Go" in df.columns:
     df["NoGo/Go"] = df["NoGo/Go"].astype(str).str.strip().str.lower()
 
-# ---------------- SIDEBAR FILTERS ----------------
+# ---------------- FILTER SIDEBAR ----------------
 st.sidebar.header("🔍 Filters")
 
-# ---------- ACCOUNT ----------
+# Account filter
 if "Account_name" in df.columns:
     account = st.sidebar.multiselect(
         "Account",
@@ -44,7 +44,7 @@ if "Account_name" in df.columns:
 else:
     account = []
 
-# ---------- DOCTOR ----------
+# Doctor filter
 if "Doctor" in df.columns:
     doctor = st.sidebar.multiselect(
         "Doctor",
@@ -54,7 +54,7 @@ if "Doctor" in df.columns:
 else:
     doctor = []
 
-# ---------- USER ----------
+# User filter
 if "Responsible_User_Name" in df.columns:
     user = st.sidebar.multiselect(
         "User",
@@ -64,7 +64,7 @@ if "Responsible_User_Name" in df.columns:
 else:
     user = []
 
-# ---------- T/F FILTER ----------
+# T/F filter
 if tf_col:
     tf_filter = st.sidebar.multiselect(
         "T/F",
@@ -74,7 +74,7 @@ if tf_col:
 else:
     tf_filter = []
 
-# ---------------- APPLY FILTERS ----------------
+# ---------------- APPLY FILTERS (ORDER IS IMPORTANT) ----------------
 filtered_df = df.copy()
 
 if account:
@@ -89,11 +89,17 @@ if user:
 if tf_col and tf_filter:
     filtered_df = filtered_df[filtered_df[tf_col].isin(tf_filter)]
 
-# ---------------- KPI LOGIC ----------------
-final_df = filtered_df.copy()
+# ---------------- KPI LOGIC (FIXED ORDER) ----------------
+base_df = filtered_df.copy()
 
-df_false = final_df.copy()
+df_false = base_df.copy()
 
+if tf_col:
+    df_false = base_df[
+        base_df[tf_col].astype(str).str.contains("false|0|no", na=False)
+    ]
+
+# ---------------- KPI CALCULATION ----------------
 total_audited_files = df_false["File_name"].nunique() if "File_name" in df_false.columns else 0
 
 go_files = df_false[
@@ -120,16 +126,16 @@ col5.metric("NoGo %", nogo_percent)
 
 # ---------------- TABLE ----------------
 st.subheader("📄 Detailed Data Table")
-st.dataframe(final_df, use_container_width=True)
+st.dataframe(filtered_df, use_container_width=True)
 
 # ---------------- CHARTS ----------------
 st.subheader("📊 Analysis")
 
-if "Doctor" in final_df.columns:
-    st.bar_chart(final_df["Doctor"].value_counts())
+if "Doctor" in filtered_df.columns:
+    st.bar_chart(filtered_df["Doctor"].value_counts())
 
-if "Account_name" in final_df.columns:
-    st.bar_chart(final_df["Account_name"].value_counts())
+if "Account_name" in filtered_df.columns:
+    st.bar_chart(filtered_df["Account_name"].value_counts())
 
-if "Responsible_User_Name" in final_df.columns:
-    st.bar_chart(final_df["Responsible_User_Name"].value_counts())
+if "Responsible_User_Name" in filtered_df.columns:
+    st.bar_chart(filtered_df["Responsible_User_Name"].value_counts())
