@@ -74,20 +74,48 @@ if tf_col:
 else:
     tf_filter = []
 
-# ================= APPLY FILTERS =================
-filtered_df = df.copy()
+# ================= FILTERS =================
+st.sidebar.header("🔍 Filters")
 
-if account:
-    filtered_df = filtered_df[filtered_df["Account_name"].isin(account)]
+# -------- ACCOUNT (default NONE selected) --------
+if "Account_name" in df.columns:
+    account = st.sidebar.multiselect(
+        "Account",
+        options=df["Account_name"].dropna().unique(),
+        default=[]   # 👈 IMPORTANT FIX
+    )
+else:
+    account = []
 
-if doctor:
-    filtered_df = filtered_df[filtered_df["Doctor"].isin(doctor)]
+# -------- DOCTOR --------
+if "Doctor" in df.columns:
+    doctor = st.sidebar.multiselect(
+        "Doctor",
+        options=df["Doctor"].dropna().unique(),
+        default=[]   # 👈 IMPORTANT FIX
+    )
+else:
+    doctor = []
 
-if user:
-    filtered_df = filtered_df[filtered_df["Responsible_User_Name"].isin(user)]
+# -------- USER --------
+if "Responsible_User_Name" in df.columns:
+    user = st.sidebar.multiselect(
+        "User",
+        options=df["Responsible_User_Name"].dropna().unique(),
+        default=[]   # 👈 IMPORTANT FIX
+    )
+else:
+    user = []
 
-if tf_col and tf_filter:
-    filtered_df = filtered_df[filtered_df[tf_col].isin(tf_filter)]
+# -------- T/F (ONLY DEFAULT FALSE) --------
+if tf_col:
+    tf_filter = st.sidebar.multiselect(
+        "T/F",
+        options=df[tf_col].dropna().unique(),
+        default=["false"]   # 👈 ONLY THIS ONE DEFAULT
+    )
+else:
+    tf_filter = []
 
 # ================= KPI LOGIC (NO FALSE FIX NOW) =================
 final_df = filtered_df.copy()
