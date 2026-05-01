@@ -11,11 +11,16 @@ if uploaded_file:
 
     # ---------------- LOAD DATA ----------------
     df = pd.read_excel(uploaded_file)
-    df.columns = df.columns.str.strip()
+
+    # ---------------- CLEAN COLUMNS (IMPORTANT FIX) ----------------
+    df.columns = df.columns.astype(str).str.strip().str.replace("\n", "").str.replace("\t", "")
 
     # ---------------- CLEAN DATA ----------------
-    df["T/F"] = df["T/F"].astype(str).str.strip().str.upper()
-    df["NoGo/Go"] = df["NoGo/Go"].astype(str).str.strip().str.lower()
+    if "T/F" in df.columns:
+        df["T/F"] = df["T/F"].astype(str).str.strip().str.upper()
+
+    if "NoGo/Go" in df.columns:
+        df["NoGo/Go"] = df["NoGo/Go"].astype(str).str.strip().str.lower()
 
     # ---------------- SIDEBAR FILTERS ----------------
     st.sidebar.header("🔍 Filters")
@@ -35,7 +40,7 @@ if uploaded_file:
         ["All"] + list(df["Responsible_User_Name"].dropna().unique())
     ) if "Responsible_User_Name" in df.columns else "All"
 
-    # ---------------- APPLY FILTERS ----------------
+    # ---------------- FILTER LOGIC ----------------
     filtered_df = df.copy()
 
     if account != "All":
@@ -47,13 +52,13 @@ if uploaded_file:
     if user != "All":
         filtered_df = filtered_df[filtered_df["Responsible_User_Name"] == user]
 
-    # ---------------- KPI LOGIC ----------------
-    df_false = filtered_df[filtered_df["T/F"] == "FALSE"]
+    # ---------------- KPI LOGIC (FIXED) ----------------
+    df_false = filtered_df[filtered_df["T/F"] == "FALSE"] if "T/F" in filtered_df.columns else filtered_df
 
-    total_audited_files = df_false["File_name"].nunique()
+    total_audited_files = df_false["File_name"].nunique() if "File_name" in df_false.columns else 0
 
-    go_files = df_false[df_false["NoGo/Go"] == "go"]["File_name"].nunique()
-    nogo_files = df_false[df_false["NoGo/Go"] == "nogo"]["File_name"].nunique()
+    go_files = df_false[df_false["NoGo/Go"] == "go"]["File_name"].nunique() if "NoGo/Go" in df_false.columns else 0
+    nogo_files = df_false[df_false["NoGo/Go"] == "nogo"]["File_name"].nunique() if "NoGo/Go" in df_false.columns else 0
 
     go_percent = round((go_files / total_audited_files) * 100, 2) if total_audited_files else 0
     nogo_percent = round((nogo_files / total_audited_files) * 100, 2) if total_audited_files else 0
@@ -73,7 +78,7 @@ if uploaded_file:
     st.dataframe(filtered_df, use_container_width=True)
 
     # ---------------- CHARTS ----------------
-    st.subheader("📊 Doctor / Account Analysis")
+    st.subheader("📊 Analysis")
 
     if "Doctor" in filtered_df.columns:
         st.write("Doctor Wise Count")
