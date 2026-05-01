@@ -65,7 +65,7 @@ if uploaded_file:
     if user != "All" and "Responsible_User_Name" in df.columns:
         filtered_df = filtered_df[filtered_df["Responsible_User_Name"] == user]
 
-    # ---------------- KPI LOGIC (FIXED CONNECTED VERSION) ----------------
+    # ---------------- KPI LOGIC ----------------
     final_df = filtered_df.copy()
 
     if tf_col:
@@ -95,8 +95,8 @@ if uploaded_file:
 
     col1.metric("Total Audited Files", total_audited_files)
     col2.metric("Go Files", go_files)
-    col3.metric("Go %", go_percent)
-    col4.metric("NoGo %", nogo_percent)
+    col3.metric("NoGo Files", nogo_files)   # ✅ THIS FIX ADDED
+    col4.metric("Go %", go_percent)
 
     # ---------------- TABLE ----------------
     st.subheader("📄 Detailed Data Table")
