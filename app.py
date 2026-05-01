@@ -40,23 +40,33 @@ if uploaded_file:
     if user != "All":
         filtered_df = filtered_df[filtered_df["Responsible_User_Name"] == user]
 
-    # ---------------- KPI SECTION ----------------
-    st.subheader("📌 KPI Summary")
-
+    # ---------------- CLEAN ----------------
+    df.columns = df.columns.str.strip()
+    
+    df["T/F"] = df["T/F"].astype(str).str.strip()
+    df["NoGo/Go"] = df["NoGo/Go"].astype(str).str.strip().str.lower()
+    
+    # ---------------- FILTER ONLY FALSE ----------------
+    df_false = df[df["T/F"] == "FALSE"]
+    
+    # Unique files count
+    total_audited_files = df_false["File_name"].nunique()
+    
+    # Go / NoGo counts
+    go_files = df_false[df_false["NoGo/Go"] == "go"]["File_name"].nunique()
+    nogo_files = df_false[df_false["NoGo/Go"] == "nogo"]["File_name"].nunique()
+    
+    # Percentages
+    go_percent = round((go_files / total_audited_files) * 100, 2) if total_audited_files else 0
+    nogo_percent = round((nogo_files / total_audited_files) * 100, 2) if total_audited_files else 0
+    
+    # ---------------- DISPLAY ----------------
     col1, col2, col3, col4 = st.columns(4)
-
-    total = len(filtered_df)
-
-    go_count = len(filtered_df[filtered_df["NoGo/Go_2010"] == "Go"]) if "NoGo/Go_2010" in filtered_df.columns else 0
-    nogo_count = len(filtered_df[filtered_df["NoGo/Go_2010"] == "NoGo"]) if "NoGo/Go_2010" in filtered_df.columns else 0
-
-    accuracy = filtered_df["Accuracy_2010"].mean() if "Accuracy_2010" in filtered_df.columns else 0
-    tat = filtered_df["TAT"].mean() if "TAT" in filtered_df.columns else 0
-
-    col1.metric("Total Files", total)
-    col2.metric("Go %", round((go_count/total)*100,2) if total else 0)
-    col3.metric("Avg Accuracy", round(accuracy,2))
-    col4.metric("Avg TAT", round(tat,2))
+    
+    col1.metric("Total Audited Files", total_audited_files)
+    col2.metric("Go Files", go_files)
+    col3.metric("Go %", go_percent)
+    col4.metric("NoGo %", nogo_percent)
 
     # ---------------- MAIN TABLE ----------------
     st.subheader("📄 Detailed Data Table")
