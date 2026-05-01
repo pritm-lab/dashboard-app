@@ -17,7 +17,7 @@ if uploaded_file:
 
     # ---------------- CLEAN DATA ----------------
     if "T/F" in df.columns:
-        df["T/F"] = df["T/F"].astype(str).str.strip().str.upper()
+        df["T/F"] = df["T/F"].astype(str).str.strip().str.lower()
 
     if "NoGo/Go" in df.columns:
         df["NoGo/Go"] = df["NoGo/Go"].astype(str).str.strip().str.lower()
@@ -53,7 +53,7 @@ if uploaded_file:
         filtered_df = filtered_df[filtered_df["Responsible_User_Name"] == user]
 
     # ---------------- KPI LOGIC (FIXED) ----------------
-    df_false = filtered_df[filtered_df["T/F"] == "FALSE"] if "T/F" in filtered_df.columns else filtered_df
+    df_false = filtered_df[filtered_df["T/F"].astype(str).str.lower() == "false"] if "T/F" in filtered_df.columns else filtered_df
 
     total_audited_files = df_false["File_name"].nunique() if "File_name" in df_false.columns else 0
 
