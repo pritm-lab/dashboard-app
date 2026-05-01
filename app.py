@@ -8,7 +8,7 @@ st.title("📊 MIS & Quality Dashboard")
 # ---------------- LOAD DATA ----------------
 df = pd.read_excel("Primary Analysis 042426.xlsx", sheet_name="Data")
 
-# ---------------- CLEAN COLUMNS ----------------
+# ---------------- CLEAN COLUMN NAMES ----------------
 df.columns = (
     df.columns.astype(str)
     .str.replace("\n", "", regex=True)
@@ -24,6 +24,7 @@ for col in df.columns:
         tf_col = col
         break
 
+# ---------------- CLEAN DATA ----------------
 if tf_col:
     df[tf_col] = df[tf_col].astype(str).str.strip().str.lower()
 
@@ -35,26 +36,26 @@ st.sidebar.header("🔍 Filters")
 
 account = st.sidebar.multiselect(
     "Account",
-    options=df["Account_name"].dropna().unique() if "Account_name" in df.columns else [],
+    options=sorted(df["Account_name"].dropna().unique()) if "Account_name" in df.columns else [],
     default=[]
 )
 
 doctor = st.sidebar.multiselect(
     "Doctor",
-    options=df["Doctor"].dropna().unique() if "Doctor" in df.columns else [],
+    options=sorted(df["Doctor"].dropna().unique()) if "Doctor" in df.columns else [],
     default=[]
 )
 
 user = st.sidebar.multiselect(
     "User",
-    options=df["Responsible_User_Name"].dropna().unique() if "Responsible_User_Name" in df.columns else [],
+    options=sorted(df["Responsible_User_Name"].dropna().unique()) if "Responsible_User_Name" in df.columns else [],
     default=[]
 )
 
 tf_filter = st.sidebar.multiselect(
     "T/F",
-    options=df[tf_col].dropna().unique() if tf_col else [],
-    default=[]
+    options=sorted(df[tf_col].dropna().unique()) if tf_col else [],
+    default=["false"] if tf_col else []
 )
 
 # ================= APPLY FILTERS =================
@@ -72,22 +73,20 @@ if user:
 if tf_col and tf_filter:
     filtered_df = filtered_df[filtered_df[tf_col].isin(tf_filter)]
 
-# ================= 💥 IMPORTANT FIX =================
-# REMOVE DUPLICATE FILES (THIS IS YOUR MAIN ISSUE FIX)
+# ================= KPI DATA (NO UNIQUE LOGIC) =================
+kpi_df = filtered_df.copy()
 
-unique_df = filtered_df.drop_duplicates(subset=["File_name"])
+# ---------------- KPI CALCULATION ----------------
+total_audited_files = len(kpi_df)
 
-# ================= KPI LOGIC =================
-total_audited_files = unique_df["File_name"].nunique() if "File_name" in unique_df.columns else 0
+go_files = len(kpi_df[kpi_df["NoGo/Go"] == "go"]) if "NoGo/Go" in kpi_df.columns else 0
 
-go_files = unique_df[unique_df["NoGo/Go"] == "go"]["File_name"].nunique() if "NoGo/Go" in unique_df.columns else 0
-
-nogo_files = unique_df[unique_df["NoGo/Go"] == "nogo"]["File_name"].nunique() if "NoGo/Go" in unique_df.columns else 0
+nogo_files = len(kpi_df[kpi_df["NoGo/Go"] == "nogo"]) if "NoGo/Go" in kpi_df.columns else 0
 
 go_percent = round((go_files / total_audited_files) * 100, 2) if total_audited_files else 0
 nogo_percent = round((nogo_files / total_audited_files) * 100, 2) if total_audited_files else 0
 
-# ================= UI =================
+# ================= KPI UI =================
 st.subheader("📌 KPI Summary")
 
 col1, col2, col3, col4, col5 = st.columns(5)
@@ -100,16 +99,16 @@ col5.metric("NoGo %", nogo_percent)
 
 # ================= TABLE =================
 st.subheader("📄 Detailed Data Table")
-st.dataframe(unique_df, use_container_width=True)
+st.dataframe(kpi_df, use_container_width=True)
 
 # ================= CHARTS =================
 st.subheader("📊 Analysis")
 
-if "Doctor" in unique_df.columns:
-    st.bar_chart(unique_df["Doctor"].value_counts())
+if "Doctor" in kpi_df.columns:
+    st.bar_chart(kpi_df["Doctor"].value_counts())
 
-if "Account_name" in unique_df.columns:
-    st.bar_chart(unique_df["Account_name"].value_counts())
+if "Account_name" in kpi_df.columns:
+    st.bar_chart(kpi_df["Account_name"].value_counts())
 
-if "Responsible_User_Name" in unique_df.columns:
-    st.bar_chart(unique_df["Responsible_User_Name"].value_counts())
+if "Responsible_User_Name" in kpi_df.columns:
+    st.bar_chart(kpi_df["Responsible_User_Name"].value_counts())
