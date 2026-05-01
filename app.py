@@ -88,15 +88,16 @@ if uploaded_file:
     go_percent = round((go_files / total_audited_files) * 100, 2) if total_audited_files else 0
     nogo_percent = round((nogo_files / total_audited_files) * 100, 2) if total_audited_files else 0
 
-    # ---------------- KPI DISPLAY ----------------
+    # ---------------- KPI DISPLAY (FINAL ORDERED) ----------------
     st.subheader("📌 KPI Summary")
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
 
     col1.metric("Total Audited Files", total_audited_files)
     col2.metric("Go Files", go_files)
-    col3.metric("NoGo Files", nogo_files)   # ✅ THIS FIX ADDED
-    col4.metric("Go %", go_percent)
+    col3.metric("Go %", go_percent)
+    col4.metric("NoGo Files", nogo_files)
+    col5.metric("NoGo %", nogo_percent)
 
     # ---------------- TABLE ----------------
     st.subheader("📄 Detailed Data Table")
