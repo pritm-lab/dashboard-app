@@ -15,14 +15,14 @@ if uploaded_file:
     # ---------------- CLEAN COLUMNS ----------------
     df.columns = df.columns.astype(str).str.strip().str.replace("\n", "").str.replace("\t", "")
 
-    # ---------------- CLEAN DATA SAFELY ----------------
+    # ---------------- NORMALIZE DATA ----------------
     if "T/F" in df.columns:
         df["T/F"] = df["T/F"].astype(str).str.strip().str.lower()
 
     if "NoGo/Go" in df.columns:
         df["NoGo/Go"] = df["NoGo/Go"].astype(str).str.strip().str.lower()
 
-    # ---------------- FILTER SIDEBAR ----------------
+    # ---------------- SIDEBAR FILTERS ----------------
     st.sidebar.header("🔍 Filters")
 
     account = st.sidebar.selectbox(
@@ -52,20 +52,21 @@ if uploaded_file:
     if user != "All":
         filtered_df = filtered_df[filtered_df["Responsible_User_Name"] == user]
 
-    # ---------------- KPI FIX (REAL WORLD SAFE) ----------------
-    df_false = filtered_df[
-        filtered_df["T/F"].astype(str).str.strip().str.lower().isin(["false", "0", "no"])
-    ] if "T/F" in filtered_df.columns else filtered_df
+    # ---------------- KPI BASE (IMPORTANT FIX) ----------------
+    base_df = df.copy()
 
+    base_df["T/F"] = base_df["T/F"].astype(str).str.strip().str.lower()
+    base_df["NoGo/Go"] = base_df["NoGo/Go"].astype(str).str.strip().str.lower()
+
+    # REAL FIX FOR ZERO ISSUE
+    df_false = base_df[base_df["T/F"].str.contains("false|0|no", na=False)]
+
+    # ---------------- KPI CALCULATION ----------------
     total_audited_files = df_false["File_name"].nunique() if "File_name" in df_false.columns else 0
 
-    go_files = df_false[
-        df_false["NoGo/Go"].astype(str).str.strip().str.lower() == "go"
-    ]["File_name"].nunique() if "NoGo/Go" in df_false.columns else 0
+    go_files = df_false[df_false["NoGo/Go"] == "go"]["File_name"].nunique() if "NoGo/Go" in df_false.columns else 0
 
-    nogo_files = df_false[
-        df_false["NoGo/Go"].astype(str).str.strip().str.lower() == "nogo"
-    ]["File_name"].nunique() if "NoGo/Go" in df_false.columns else 0
+    nogo_files = df_false[df_false["NoGo/Go"] == "nogo"]["File_name"].nunique() if "NoGo/Go" in df_false.columns else 0
 
     go_percent = round((go_files / total_audited_files) * 100, 2) if total_audited_files else 0
     nogo_percent = round((nogo_files / total_audited_files) * 100, 2) if total_audited_files else 0
