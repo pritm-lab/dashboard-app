@@ -8,7 +8,7 @@ st.title("📊 MIS & Quality Dashboard")
 # ---------------- LOAD DATA ----------------
 df = pd.read_excel("Primary Analysis 042426.xlsx", sheet_name="Data")
 
-# ---------------- CLEAN COLUMN NAMES ----------------
+# ---------------- CLEAN COLUMNS ----------------
 df.columns = (
     df.columns.astype(str)
     .str.replace("\n", "", regex=True)
@@ -31,10 +31,10 @@ if tf_col:
 if "NoGo/Go" in df.columns:
     df["NoGo/Go"] = df["NoGo/Go"].astype(str).str.strip().str.lower()
 
-# ---------------- FILTER SIDEBAR ----------------
+# ================= FILTERS =================
 st.sidebar.header("🔍 Filters")
 
-# Account filter
+# -------- ACCOUNT --------
 if "Account_name" in df.columns:
     account = st.sidebar.multiselect(
         "Account",
@@ -44,7 +44,7 @@ if "Account_name" in df.columns:
 else:
     account = []
 
-# Doctor filter
+# -------- DOCTOR --------
 if "Doctor" in df.columns:
     doctor = st.sidebar.multiselect(
         "Doctor",
@@ -54,7 +54,7 @@ if "Doctor" in df.columns:
 else:
     doctor = []
 
-# User filter
+# -------- USER --------
 if "Responsible_User_Name" in df.columns:
     user = st.sidebar.multiselect(
         "User",
@@ -64,17 +64,17 @@ if "Responsible_User_Name" in df.columns:
 else:
     user = []
 
-# T/F filter
+# -------- T/F (DEFAULT = FALSE) --------
 if tf_col:
     tf_filter = st.sidebar.multiselect(
         "T/F",
         options=df[tf_col].dropna().unique(),
-        default=df[tf_col].dropna().unique()
+        default=["false"] if "false" in df[tf_col].unique() else df[tf_col].dropna().unique()
     )
 else:
     tf_filter = []
 
-# ---------------- APPLY FILTERS (ORDER IS IMPORTANT) ----------------
+# ================= APPLY FILTERS =================
 filtered_df = df.copy()
 
 if account:
@@ -89,31 +89,23 @@ if user:
 if tf_col and tf_filter:
     filtered_df = filtered_df[filtered_df[tf_col].isin(tf_filter)]
 
-# ---------------- KPI LOGIC (FIXED ORDER) ----------------
-base_df = filtered_df.copy()
+# ================= KPI LOGIC (NO FALSE FIX NOW) =================
+final_df = filtered_df.copy()
 
-df_false = base_df.copy()
+total_audited_files = final_df["File_name"].nunique() if "File_name" in final_df.columns else 0
 
-if tf_col:
-    df_false = base_df[
-        base_df[tf_col].astype(str).str.contains("false|0|no", na=False)
-    ]
+go_files = final_df[
+    final_df["NoGo/Go"] == "go"
+]["File_name"].nunique() if "NoGo/Go" in final_df.columns else 0
 
-# ---------------- KPI CALCULATION ----------------
-total_audited_files = df_false["File_name"].nunique() if "File_name" in df_false.columns else 0
-
-go_files = df_false[
-    df_false["NoGo/Go"] == "go"
-]["File_name"].nunique() if "NoGo/Go" in df_false.columns else 0
-
-nogo_files = df_false[
-    df_false["NoGo/Go"] == "nogo"
-]["File_name"].nunique() if "NoGo/Go" in df_false.columns else 0
+nogo_files = final_df[
+    final_df["NoGo/Go"] == "nogo"
+]["File_name"].nunique() if "NoGo/Go" in final_df.columns else 0
 
 go_percent = round((go_files / total_audited_files) * 100, 2) if total_audited_files else 0
 nogo_percent = round((nogo_files / total_audited_files) * 100, 2) if total_audited_files else 0
 
-# ---------------- KPI DISPLAY ----------------
+# ================= KPI DISPLAY =================
 st.subheader("📌 KPI Summary")
 
 col1, col2, col3, col4, col5 = st.columns(5)
@@ -124,18 +116,18 @@ col3.metric("Go %", go_percent)
 col4.metric("NoGo Files", nogo_files)
 col5.metric("NoGo %", nogo_percent)
 
-# ---------------- TABLE ----------------
+# ================= TABLE =================
 st.subheader("📄 Detailed Data Table")
-st.dataframe(filtered_df, use_container_width=True)
+st.dataframe(final_df, use_container_width=True)
 
-# ---------------- CHARTS ----------------
+# ================= CHARTS =================
 st.subheader("📊 Analysis")
 
-if "Doctor" in filtered_df.columns:
-    st.bar_chart(filtered_df["Doctor"].value_counts())
+if "Doctor" in final_df.columns:
+    st.bar_chart(final_df["Doctor"].value_counts())
 
-if "Account_name" in filtered_df.columns:
-    st.bar_chart(filtered_df["Account_name"].value_counts())
+if "Account_name" in final_df.columns:
+    st.bar_chart(final_df["Account_name"].value_counts())
 
-if "Responsible_User_Name" in filtered_df.columns:
-    st.bar_chart(filtered_df["Responsible_User_Name"].value_counts())
+if "Responsible_User_Name" in final_df.columns:
+    st.bar_chart(final_df["Responsible_User_Name"].value_counts())
