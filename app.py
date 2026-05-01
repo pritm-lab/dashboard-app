@@ -8,27 +8,34 @@ st.title("📊 MIS & Quality Dashboard")
 uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 
 if uploaded_file:
-    df = pd.read_excel(uploaded_file)
 
-    # ---------------- FILTER SIDEBAR ----------------
+    # ---------------- LOAD DATA ----------------
+    df = pd.read_excel(uploaded_file)
+    df.columns = df.columns.str.strip()
+
+    # ---------------- CLEAN DATA ----------------
+    df["T/F"] = df["T/F"].astype(str).str.strip().str.upper()
+    df["NoGo/Go"] = df["NoGo/Go"].astype(str).str.strip().str.lower()
+
+    # ---------------- SIDEBAR FILTERS ----------------
     st.sidebar.header("🔍 Filters")
 
-    if "Account_name" in df.columns:
-        account = st.sidebar.selectbox("Account", ["All"] + list(df["Account_name"].dropna().unique()))
-    else:
-        account = "All"
+    account = st.sidebar.selectbox(
+        "Account",
+        ["All"] + list(df["Account_name"].dropna().unique())
+    ) if "Account_name" in df.columns else "All"
 
-    if "Doctor" in df.columns:
-        doctor = st.sidebar.selectbox("Doctor", ["All"] + list(df["Doctor"].dropna().unique()))
-    else:
-        doctor = "All"
+    doctor = st.sidebar.selectbox(
+        "Doctor",
+        ["All"] + list(df["Doctor"].dropna().unique())
+    ) if "Doctor" in df.columns else "All"
 
-    if "Responsible_User_Name" in df.columns:
-        user = st.sidebar.selectbox("User", ["All"] + list(df["Responsible_User_Name"].dropna().unique()))
-    else:
-        user = "All"
+    user = st.sidebar.selectbox(
+        "User",
+        ["All"] + list(df["Responsible_User_Name"].dropna().unique())
+    ) if "Responsible_User_Name" in df.columns else "All"
 
-    # ---------------- FILTER LOGIC ----------------
+    # ---------------- APPLY FILTERS ----------------
     filtered_df = df.copy()
 
     if account != "All":
@@ -40,49 +47,42 @@ if uploaded_file:
     if user != "All":
         filtered_df = filtered_df[filtered_df["Responsible_User_Name"] == user]
 
-    # ---------------- CLEAN ----------------
-    df.columns = df.columns.str.strip()
-    
-    df["T/F"] = df["T/F"].astype(str).str.strip()
-    df["NoGo/Go"] = df["NoGo/Go"].astype(str).str.strip().str.lower()
-    
-    # ---------------- FILTER ONLY FALSE ----------------
-    df_false = df[df["T/F"] == "FALSE"]
-    
-    # Unique files count
+    # ---------------- KPI LOGIC ----------------
+    df_false = filtered_df[filtered_df["T/F"] == "FALSE"]
+
     total_audited_files = df_false["File_name"].nunique()
-    
-    # Go / NoGo counts
+
     go_files = df_false[df_false["NoGo/Go"] == "go"]["File_name"].nunique()
     nogo_files = df_false[df_false["NoGo/Go"] == "nogo"]["File_name"].nunique()
-    
-    # Percentages
+
     go_percent = round((go_files / total_audited_files) * 100, 2) if total_audited_files else 0
     nogo_percent = round((nogo_files / total_audited_files) * 100, 2) if total_audited_files else 0
-    
-    # ---------------- DISPLAY ----------------
+
+    # ---------------- KPI DISPLAY ----------------
+    st.subheader("📌 KPI Summary")
+
     col1, col2, col3, col4 = st.columns(4)
-    
+
     col1.metric("Total Audited Files", total_audited_files)
     col2.metric("Go Files", go_files)
     col3.metric("Go %", go_percent)
     col4.metric("NoGo %", nogo_percent)
 
-    # ---------------- MAIN TABLE ----------------
+    # ---------------- TABLE ----------------
     st.subheader("📄 Detailed Data Table")
     st.dataframe(filtered_df, use_container_width=True)
 
-    # ---------------- SUMMARY ----------------
-    st.subheader("📊 Doctor / Account Summary")
+    # ---------------- CHARTS ----------------
+    st.subheader("📊 Doctor / Account Analysis")
 
     if "Doctor" in filtered_df.columns:
-        st.write("### Doctor Wise Count")
+        st.write("Doctor Wise Count")
         st.bar_chart(filtered_df["Doctor"].value_counts())
 
     if "Account_name" in filtered_df.columns:
-        st.write("### Account Wise Count")
+        st.write("Account Wise Count")
         st.bar_chart(filtered_df["Account_name"].value_counts())
 
     if "Responsible_User_Name" in filtered_df.columns:
-        st.write("### User Wise Count")
+        st.write("User Wise Count")
         st.bar_chart(filtered_df["Responsible_User_Name"].value_counts())
