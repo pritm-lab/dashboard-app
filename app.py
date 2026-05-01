@@ -30,37 +30,34 @@ if tf_col:
 if "NoGo/Go" in df.columns:
     df["NoGo/Go"] = df["NoGo/Go"].astype(str).str.strip().str.lower()
 
-# ================= BASE DATA (IMPORTANT FIX) =================
-base_df = df.copy()   # 🔥 ALWAYS FULL DATA (NO FILTER)
-
 # ================= FILTERS =================
 st.sidebar.header("🔍 Filters")
 
 account = st.sidebar.multiselect(
     "Account",
-    options=sorted(df["Account_name"].dropna().unique()) if "Account_name" in df.columns else [],
+    options=df["Account_name"].dropna().unique() if "Account_name" in df.columns else [],
     default=[]
 )
 
 doctor = st.sidebar.multiselect(
     "Doctor",
-    options=sorted(df["Doctor"].dropna().unique()) if "Doctor" in df.columns else [],
+    options=df["Doctor"].dropna().unique() if "Doctor" in df.columns else [],
     default=[]
 )
 
 user = st.sidebar.multiselect(
     "User",
-    options=sorted(df["Responsible_User_Name"].dropna().unique()) if "Responsible_User_Name" in df.columns else [],
+    options=df["Responsible_User_Name"].dropna().unique() if "Responsible_User_Name" in df.columns else [],
     default=[]
 )
 
 tf_filter = st.sidebar.multiselect(
     "T/F",
-    options=sorted(df[tf_col].dropna().unique()) if tf_col else [],
-    default=["false"] if tf_col else []
+    options=df[tf_col].dropna().unique() if tf_col else [],
+    default=[]
 )
 
-# ================= FILTERED DATA (UI ONLY) =================
+# ================= APPLY FILTERS =================
 filtered_df = df.copy()
 
 if account:
@@ -75,15 +72,17 @@ if user:
 if tf_col and tf_filter:
     filtered_df = filtered_df[filtered_df[tf_col].isin(tf_filter)]
 
-# ================= KPI DATA (NO T/F IMPACT ON TOTAL) =================
-kpi_df = filtered_df.copy()
+# ================= 💥 IMPORTANT FIX =================
+# REMOVE DUPLICATE FILES (THIS IS YOUR MAIN ISSUE FIX)
 
-# ---------------- KPI ----------------
-total_audited_files = kpi_df["File_name"].nunique() if "File_name" in kpi_df.columns else 0
+unique_df = filtered_df.drop_duplicates(subset=["File_name"])
 
-go_files = kpi_df[kpi_df["NoGo/Go"] == "go"]["File_name"].nunique() if "NoGo/Go" in kpi_df.columns else 0
+# ================= KPI LOGIC =================
+total_audited_files = unique_df["File_name"].nunique() if "File_name" in unique_df.columns else 0
 
-nogo_files = kpi_df[kpi_df["NoGo/Go"] == "nogo"]["File_name"].nunique() if "NoGo/Go" in kpi_df.columns else 0
+go_files = unique_df[unique_df["NoGo/Go"] == "go"]["File_name"].nunique() if "NoGo/Go" in unique_df.columns else 0
+
+nogo_files = unique_df[unique_df["NoGo/Go"] == "nogo"]["File_name"].nunique() if "NoGo/Go" in unique_df.columns else 0
 
 go_percent = round((go_files / total_audited_files) * 100, 2) if total_audited_files else 0
 nogo_percent = round((nogo_files / total_audited_files) * 100, 2) if total_audited_files else 0
@@ -101,16 +100,16 @@ col5.metric("NoGo %", nogo_percent)
 
 # ================= TABLE =================
 st.subheader("📄 Detailed Data Table")
-st.dataframe(filtered_df, use_container_width=True)
+st.dataframe(unique_df, use_container_width=True)
 
 # ================= CHARTS =================
 st.subheader("📊 Analysis")
 
-if "Doctor" in filtered_df.columns:
-    st.bar_chart(filtered_df["Doctor"].value_counts())
+if "Doctor" in unique_df.columns:
+    st.bar_chart(unique_df["Doctor"].value_counts())
 
-if "Account_name" in filtered_df.columns:
-    st.bar_chart(filtered_df["Account_name"].value_counts())
+if "Account_name" in unique_df.columns:
+    st.bar_chart(unique_df["Account_name"].value_counts())
 
-if "Responsible_User_Name" in filtered_df.columns:
-    st.bar_chart(filtered_df["Responsible_User_Name"].value_counts())
+if "Responsible_User_Name" in unique_df.columns:
+    st.bar_chart(unique_df["Responsible_User_Name"].value_counts())
