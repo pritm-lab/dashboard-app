@@ -5,10 +5,10 @@ st.set_page_config(page_title="MIS Dashboard", layout="wide")
 
 st.title("📊 MIS & Quality Dashboard")
 
-# ---------------- LOAD CORRECT FILE ----------------
+# ---------------- LOAD DATA ----------------
 df = pd.read_excel("Primary Analysis 042426.xlsx", sheet_name="Data")
 
-# ---------------- CLEAN COLUMN NAMES ----------------
+# ---------------- CLEAN COLUMNS ----------------
 df.columns = (
     df.columns.astype(str)
     .str.replace("\n", "", regex=True)
@@ -31,45 +31,68 @@ if tf_col:
 if "NoGo/Go" in df.columns:
     df["NoGo/Go"] = df["NoGo/Go"].astype(str).str.strip().str.lower()
 
-# ---------------- FILTER SIDEBAR ----------------
+# ---------------- SIDEBAR FILTERS ----------------
 st.sidebar.header("🔍 Filters")
 
-account = st.sidebar.selectbox(
-    "Account",
-    ["All"] + list(df["Account_name"].dropna().unique())
-) if "Account_name" in df.columns else "All"
+# ---------- ACCOUNT ----------
+if "Account_name" in df.columns:
+    account = st.sidebar.multiselect(
+        "Account",
+        options=df["Account_name"].dropna().unique(),
+        default=df["Account_name"].dropna().unique()
+    )
+else:
+    account = []
 
-doctor = st.sidebar.selectbox(
-    "Doctor",
-    ["All"] + list(df["Doctor"].dropna().unique())
-) if "Doctor" in df.columns else "All"
+# ---------- DOCTOR ----------
+if "Doctor" in df.columns:
+    doctor = st.sidebar.multiselect(
+        "Doctor",
+        options=df["Doctor"].dropna().unique(),
+        default=df["Doctor"].dropna().unique()
+    )
+else:
+    doctor = []
 
-user = st.sidebar.selectbox(
-    "User",
-    ["All"] + list(df["Responsible_User_Name"].dropna().unique())
-) if "Responsible_User_Name" in df.columns else "All"
+# ---------- USER ----------
+if "Responsible_User_Name" in df.columns:
+    user = st.sidebar.multiselect(
+        "User",
+        options=df["Responsible_User_Name"].dropna().unique(),
+        default=df["Responsible_User_Name"].dropna().unique()
+    )
+else:
+    user = []
+
+# ---------- T/F FILTER ----------
+if tf_col:
+    tf_filter = st.sidebar.multiselect(
+        "T/F",
+        options=df[tf_col].dropna().unique(),
+        default=df[tf_col].dropna().unique()
+    )
+else:
+    tf_filter = []
 
 # ---------------- APPLY FILTERS ----------------
 filtered_df = df.copy()
 
-if account != "All" and "Account_name" in df.columns:
-    filtered_df = filtered_df[filtered_df["Account_name"] == account]
+if account:
+    filtered_df = filtered_df[filtered_df["Account_name"].isin(account)]
 
-if doctor != "All" and "Doctor" in df.columns:
-    filtered_df = filtered_df[filtered_df["Doctor"] == doctor]
+if doctor:
+    filtered_df = filtered_df[filtered_df["Doctor"].isin(doctor)]
 
-if user != "All" and "Responsible_User_Name" in df.columns:
-    filtered_df = filtered_df[filtered_df["Responsible_User_Name"] == user]
+if user:
+    filtered_df = filtered_df[filtered_df["Responsible_User_Name"].isin(user)]
+
+if tf_col and tf_filter:
+    filtered_df = filtered_df[filtered_df[tf_col].isin(tf_filter)]
 
 # ---------------- KPI LOGIC ----------------
 final_df = filtered_df.copy()
 
-if tf_col:
-    df_false = final_df[
-        final_df[tf_col].astype(str).str.contains("false|0|no", na=False)
-    ]
-else:
-    df_false = final_df.copy()
+df_false = final_df.copy()
 
 total_audited_files = df_false["File_name"].nunique() if "File_name" in df_false.columns else 0
 
