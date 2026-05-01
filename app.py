@@ -8,7 +8,7 @@ st.title("📊 MIS & Quality Dashboard")
 # ---------------- LOAD DATA ----------------
 df = pd.read_excel("Primary Analysis 042426.xlsx", sheet_name="Data")
 
-# ---------------- CLEAN COLUMNS ----------------
+# ---------------- CLEAN COLUMN NAMES ----------------
 df.columns = (
     df.columns.astype(str)
     .str.replace("\n", "", regex=True)
@@ -34,12 +34,12 @@ if "NoGo/Go" in df.columns:
 # ================= FILTERS =================
 st.sidebar.header("🔍 Filters")
 
-# -------- ACCOUNT --------
+# -------- ACCOUNT (EMPTY BY DEFAULT) --------
 if "Account_name" in df.columns:
     account = st.sidebar.multiselect(
         "Account",
-        options=df["Account_name"].dropna().unique(),
-        default=df["Account_name"].dropna().unique()
+        options=sorted(df["Account_name"].dropna().unique()),
+        default=[]
     )
 else:
     account = []
@@ -48,8 +48,8 @@ else:
 if "Doctor" in df.columns:
     doctor = st.sidebar.multiselect(
         "Doctor",
-        options=df["Doctor"].dropna().unique(),
-        default=df["Doctor"].dropna().unique()
+        options=sorted(df["Doctor"].dropna().unique()),
+        default=[]
     )
 else:
     doctor = []
@@ -58,51 +58,8 @@ else:
 if "Responsible_User_Name" in df.columns:
     user = st.sidebar.multiselect(
         "User",
-        options=df["Responsible_User_Name"].dropna().unique(),
-        default=df["Responsible_User_Name"].dropna().unique()
-    )
-else:
-    user = []
-
-# -------- T/F (DEFAULT = FALSE) --------
-if tf_col:
-    tf_filter = st.sidebar.multiselect(
-        "T/F",
-        options=df[tf_col].dropna().unique(),
-        default=["false"] if "false" in df[tf_col].unique() else df[tf_col].dropna().unique()
-    )
-else:
-    tf_filter = []
-
-# ================= FILTERS =================
-st.sidebar.header("🔍 Filters")
-
-# -------- ACCOUNT (default NONE selected) --------
-if "Account_name" in df.columns:
-    account = st.sidebar.multiselect(
-        "Account",
-        options=df["Account_name"].dropna().unique(),
-        default=[]   # 👈 IMPORTANT FIX
-    )
-else:
-    account = []
-
-# -------- DOCTOR --------
-if "Doctor" in df.columns:
-    doctor = st.sidebar.multiselect(
-        "Doctor",
-        options=df["Doctor"].dropna().unique(),
-        default=[]   # 👈 IMPORTANT FIX
-    )
-else:
-    doctor = []
-
-# -------- USER --------
-if "Responsible_User_Name" in df.columns:
-    user = st.sidebar.multiselect(
-        "User",
-        options=df["Responsible_User_Name"].dropna().unique(),
-        default=[]   # 👈 IMPORTANT FIX
+        options=sorted(df["Responsible_User_Name"].dropna().unique()),
+        default=[]
     )
 else:
     user = []
@@ -111,13 +68,28 @@ else:
 if tf_col:
     tf_filter = st.sidebar.multiselect(
         "T/F",
-        options=df[tf_col].dropna().unique(),
-        default=["false"]   # 👈 ONLY THIS ONE DEFAULT
+        options=sorted(df[tf_col].dropna().unique()),
+        default=["false"] if "false" in df[tf_col].values else []
     )
 else:
     tf_filter = []
 
-# ================= KPI LOGIC (NO FALSE FIX NOW) =================
+# ================= APPLY FILTERS =================
+filtered_df = df.copy()
+
+if account:
+    filtered_df = filtered_df[filtered_df["Account_name"].isin(account)]
+
+if doctor:
+    filtered_df = filtered_df[filtered_df["Doctor"].isin(doctor)]
+
+if user:
+    filtered_df = filtered_df[filtered_df["Responsible_User_Name"].isin(user)]
+
+if tf_col and tf_filter:
+    filtered_df = filtered_df[filtered_df[tf_col].isin(tf_filter)]
+
+# ================= KPI LOGIC =================
 final_df = filtered_df.copy()
 
 total_audited_files = final_df["File_name"].nunique() if "File_name" in final_df.columns else 0
@@ -133,7 +105,7 @@ nogo_files = final_df[
 go_percent = round((go_files / total_audited_files) * 100, 2) if total_audited_files else 0
 nogo_percent = round((nogo_files / total_audited_files) * 100, 2) if total_audited_files else 0
 
-# ================= KPI DISPLAY =================
+# ================= KPI UI =================
 st.subheader("📌 KPI Summary")
 
 col1, col2, col3, col4, col5 = st.columns(5)
