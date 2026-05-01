@@ -10,7 +10,7 @@ uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 if uploaded_file:
 
     # ---------------- LOAD DATA ----------------
-    df = pd.read_excel(uploaded_file)
+    df = pd.read_excel(uploaded_file, sheet_name="Data")
 
     # ---------------- CLEAN COLUMN NAMES ----------------
     df.columns = (
