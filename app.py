@@ -3,7 +3,7 @@ import pandas as pd
 
 st.set_page_config(page_title="MIS Dashboard", layout="wide")
 
-st.title("?? MIS & Quality Dashboard")
+st.title("📊 MIS & Quality Dashboard")
 
 # ---------------- LOAD DATA ----------------
 df = pd.read_excel("Primary Analysis 042426.xlsx", sheet_name="Data")
@@ -32,7 +32,7 @@ if "NoGo/Go" in df.columns:
     df["NoGo/Go"] = df["NoGo/Go"].astype(str).str.strip().str.lower()
 
 # ================= FILTERS =================
-st.sidebar.header("?? Filters")
+st.sidebar.header("🔍 Filters")
 
 account = st.sidebar.multiselect(
     "Account",
@@ -96,7 +96,7 @@ nogo = len(kpi_df[kpi_df["NoGo/Go"] == "nogo"]) if "NoGo/Go" in kpi_df.columns e
 go_pct = round((go / total) * 100, 2) if total else 0
 nogo_pct = round((nogo / total) * 100, 2) if total else 0
 
-st.subheader("?? KPI Summary")
+st.subheader("📌 KPI Summary")
 
 c1, c2, c3, c4, c5 = st.columns(5)
 c1.metric("Total", total)
@@ -161,7 +161,7 @@ def make_pivot(data, index_col, label):
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.subheader("?? User Wise")
+    st.subheader("👤 User Wise")
     if "Responsible_User_Name" in filtered_df.columns:
         st.dataframe(
             make_pivot(filtered_df, "Responsible_User_Name", "User"),
@@ -170,7 +170,7 @@ with col1:
         )
 
 with col2:
-    st.subheader("?? Initial Wise")
+    st.subheader("🏥 Initial Wise")
     if "Initial" in filtered_df.columns:
         st.dataframe(
             make_pivot(filtered_df, "Initial", "Initial"),
@@ -179,7 +179,7 @@ with col2:
         )
 
 with col3:
-    st.subheader("?? Doctor Wise")
+    st.subheader("🩺 Doctor Wise")
     if "Doctor" in filtered_df.columns:
         st.dataframe(
             make_pivot(filtered_df, "Doctor", "Doctor"),
