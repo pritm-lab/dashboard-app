@@ -208,7 +208,10 @@ with col1:
         )
 
         st.dataframe(
-            user_pivot,
+            user_pivot.style.background_gradient(
+                subset=["NoGo%"],
+                cmap="Reds"
+            ),
             hide_index=True,
             height=400,
             use_container_width=True
@@ -274,6 +277,16 @@ with col2:
             use_container_width=True
         )
 
+        st.dataframe(
+            initial_pivot.style.background_gradient(
+                subset=["NoGo%"],
+                cmap="Reds"
+            ),
+            hide_index=True,
+            height=400,
+            use_container_width=True
+        )
+
 # =========================================================
 # DOCTOR WISE PIVOT
 # =========================================================
@@ -329,6 +342,16 @@ with col3:
 
         st.dataframe(
             doctor_pivot,
+            hide_index=True,
+            height=400,
+            use_container_width=True
+        )
+
+        st.dataframe(
+            doctor_pivot.style.background_gradient(
+                subset=["NoGo%"],
+                cmap="Reds"
+            ),
             hide_index=True,
             height=400,
             use_container_width=True
