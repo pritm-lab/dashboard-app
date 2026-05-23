@@ -155,93 +155,186 @@ col3.metric("Go %", f"{go_percent}%")
 col4.metric("NoGo Files", nogo_files)
 col5.metric("NoGo %", f"{nogo_percent}%")
 
-# ================= USER WISE PIVOT =================
+# ================= 3 SIDE-BY-SIDE PIVOTS =================
 
-st.subheader("📋 User Wise Quality Summary")
+col1, col2, col3 = st.columns(3)
 
-if (
-    "Responsible_User_Name" in filtered_df.columns
-    and "NoGo/Go" in filtered_df.columns
-):
+# =========================================================
+# USER WISE PIVOT
+# =========================================================
 
-    # ---------------- CREATE PIVOT ----------------
-    pivot_df = pd.pivot_table(
-        filtered_df,
-        index="Responsible_User_Name",
-        columns="NoGo/Go",
-        values="Account_name",
-        aggfunc="count",
-        fill_value=0
-    ).reset_index()
+with col1:
 
-    pivot_df.columns.name = None
+    st.subheader("👤 User Wise")
 
-    # ---------------- HANDLE MISSING COLUMNS ----------------
-    if "go" not in pivot_df.columns:
-        pivot_df["go"] = 0
+    if (
+        "Responsible_User_Name" in filtered_df.columns
+        and "NoGo/Go" in filtered_df.columns
+    ):
 
-    if "nogo" not in pivot_df.columns:
-        pivot_df["nogo"] = 0
+        user_pivot = pd.pivot_table(
+            filtered_df,
+            index="Responsible_User_Name",
+            columns="NoGo/Go",
+            values="Account_name",
+            aggfunc="count",
+            fill_value=0
+        ).reset_index()
 
-    # ---------------- RENAME ----------------
-    pivot_df = pivot_df.rename(columns={
-        "Responsible_User_Name": "User Name",
-        "go": "Go",
-        "nogo": "NoGo"
-    })
+        user_pivot.columns.name = None
 
-    # ---------------- CALCULATIONS ----------------
-    pivot_df["Grand Total"] = (
-        pivot_df["Go"] + pivot_df["NoGo"]
-    )
+        if "go" not in user_pivot.columns:
+            user_pivot["go"] = 0
 
-    pivot_df["NoGo%"] = (
-        (pivot_df["NoGo"] / pivot_df["Grand Total"]) * 100
-    ).round(2)
+        if "nogo" not in user_pivot.columns:
+            user_pivot["nogo"] = 0
 
-    # ---------------- SORT ----------------
-    pivot_df = pivot_df.sort_values(
-        by="NoGo",
-        ascending=False
-    )
+        user_pivot = user_pivot.rename(columns={
+            "Responsible_User_Name": "User",
+            "go": "Go",
+            "nogo": "NoGo"
+        })
 
-    # ================= GRAND TOTAL =================
+        user_pivot["Total"] = (
+            user_pivot["Go"] + user_pivot["NoGo"]
+        )
 
-    total_go = pivot_df["Go"].sum()
+        user_pivot["NoGo%"] = (
+            (user_pivot["NoGo"] / user_pivot["Total"]) * 100
+        ).round(2)
 
-    total_nogo = pivot_df["NoGo"].sum()
+        user_pivot["NoGo%"] = (
+            user_pivot["NoGo%"].astype(str) + "%"
+        )
 
-    total_grand = pivot_df["Grand Total"].sum()
+        user_pivot = user_pivot.sort_values(
+            by="NoGo",
+            ascending=False
+        )
 
-    total_nogo_percent = round(
-        (total_nogo / total_grand) * 100,
-        2
-    ) if total_grand else 0
+        st.dataframe(
+            user_pivot,
+            hide_index=True,
+            height=400,
+            use_container_width=True
+        )
 
-    grand_total_row = pd.DataFrame([{
-        "User Name": "Grand Total",
-        "Go": total_go,
-        "NoGo": total_nogo,
-        "Grand Total": total_grand,
-        "NoGo%": total_nogo_percent
-    }])
+# =========================================================
+# INITIAL WISE PIVOT
+# =========================================================
 
-    pivot_df = pd.concat(
-        [pivot_df, grand_total_row],
-        ignore_index=True
-    )
+with col2:
 
-    # ---------------- FORMAT % ----------------
-    pivot_df["NoGo%"] = (
-        pivot_df["NoGo%"]
-        .astype(str) + "%"
-    )
+    st.subheader("🔤 Initial Wise")
 
-    # ================= DISPLAY TABLE =================
+    if (
+        "Initial" in filtered_df.columns
+        and "NoGo/Go" in filtered_df.columns
+    ):
 
-    st.dataframe(
-        pivot_df,
-        hide_index=True,
-        height=400,
-        use_container_width=False
-    )
+        initial_pivot = pd.pivot_table(
+            filtered_df,
+            index="Initial",
+            columns="NoGo/Go",
+            values="Account_name",
+            aggfunc="count",
+            fill_value=0
+        ).reset_index()
+
+        initial_pivot.columns.name = None
+
+        if "go" not in initial_pivot.columns:
+            initial_pivot["go"] = 0
+
+        if "nogo" not in initial_pivot.columns:
+            initial_pivot["nogo"] = 0
+
+        initial_pivot = initial_pivot.rename(columns={
+            "Initial": "Initial",
+            "go": "Go",
+            "nogo": "NoGo"
+        })
+
+        initial_pivot["Total"] = (
+            initial_pivot["Go"] + initial_pivot["NoGo"]
+        )
+
+        initial_pivot["NoGo%"] = (
+            (initial_pivot["NoGo"] / initial_pivot["Total"]) * 100
+        ).round(2)
+
+        initial_pivot["NoGo%"] = (
+            initial_pivot["NoGo%"].astype(str) + "%"
+        )
+
+        initial_pivot = initial_pivot.sort_values(
+            by="NoGo",
+            ascending=False
+        )
+
+        st.dataframe(
+            initial_pivot,
+            hide_index=True,
+            height=400,
+            use_container_width=True
+        )
+
+# =========================================================
+# DOCTOR WISE PIVOT
+# =========================================================
+
+with col3:
+
+    st.subheader("🩺 Doctor Wise")
+
+    if (
+        "Doctor" in filtered_df.columns
+        and "NoGo/Go" in filtered_df.columns
+    ):
+
+        doctor_pivot = pd.pivot_table(
+            filtered_df,
+            index="Doctor",
+            columns="NoGo/Go",
+            values="Account_name",
+            aggfunc="count",
+            fill_value=0
+        ).reset_index()
+
+        doctor_pivot.columns.name = None
+
+        if "go" not in doctor_pivot.columns:
+            doctor_pivot["go"] = 0
+
+        if "nogo" not in doctor_pivot.columns:
+            doctor_pivot["nogo"] = 0
+
+        doctor_pivot = doctor_pivot.rename(columns={
+            "Doctor": "Doctor",
+            "go": "Go",
+            "nogo": "NoGo"
+        })
+
+        doctor_pivot["Total"] = (
+            doctor_pivot["Go"] + doctor_pivot["NoGo"]
+        )
+
+        doctor_pivot["NoGo%"] = (
+            (doctor_pivot["NoGo"] / doctor_pivot["Total"]) * 100
+        ).round(2)
+
+        doctor_pivot["NoGo%"] = (
+            doctor_pivot["NoGo%"].astype(str) + "%"
+        )
+
+        doctor_pivot = doctor_pivot.sort_values(
+            by="NoGo",
+            ascending=False
+        )
+
+        st.dataframe(
+            doctor_pivot,
+            hide_index=True,
+            height=400,
+            use_container_width=True
+        )
