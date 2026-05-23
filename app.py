@@ -105,7 +105,7 @@ c3.metric("Go %", f"{go_pct}%")
 c4.metric("NoGo", nogo)
 c5.metric("NoGo %", f"{nogo_pct}%")
 
-# ================= FUNCTION (COMMON PIVOT) =================
+# ================= PIVOT FUNCTION (FIXED GRAND TOTAL + SORT) =================
 def make_pivot(data, index_col, label):
 
     pivot = pd.pivot_table(
@@ -130,10 +130,16 @@ def make_pivot(data, index_col, label):
 
     pivot["Total"] = pivot["Go"] + pivot["NoGo"]
 
-    # keep numeric (IMPORTANT for sorting)
+    # numeric % (for logic only)
     pivot["NoGo%_num"] = (pivot["NoGo"] / pivot["Total"] * 100).round(2)
 
-    # GRAND TOTAL ROW (NO SORT TOUCH)
+    # remove grand total if exists (safety)
+    pivot = pivot[pivot[label] != "Grand Total"]
+
+    # sort ONLY real data
+    pivot = pivot.sort_values("NoGo", ascending=False)
+
+    # GRAND TOTAL (always bottom)
     grand = pd.DataFrame([{
         label: "Grand Total",
         "Go": pivot["Go"].sum(),
@@ -144,15 +150,9 @@ def make_pivot(data, index_col, label):
         ) if pivot["Total"].sum() else 0
     }])
 
-    pivot = pivot[pivot[label] != "Grand Total"]
-
-    # sort ONLY real data
-    pivot = pivot.sort_values("NoGo", ascending=False)
-
-    # attach grand total at bottom (FREEZE FIX)
     pivot = pd.concat([pivot, grand], ignore_index=True)
 
-    # final display column (after sorting)
+    # final display formatting
     pivot["NoGo%"] = pivot["NoGo%_num"].astype(str) + "%"
 
     return pivot[[label, "Go", "NoGo", "Total", "NoGo%"]]
