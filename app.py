@@ -89,25 +89,55 @@ if tf_col and tf_filter:
 # ================= KPI =================
 kpi_df = filtered_df.copy()
 
-total_audited_files = len(kpi_df)
+total = len(kpi_df)
 
-go_files = len(kpi_df[kpi_df["NoGo/Go"] == "go"]) if "NoGo/Go" in kpi_df.columns else 0
+go = len(kpi_df[kpi_df["NoGo/Go"] == "go"]) if "NoGo/Go" in kpi_df.columns else 0
 
-nogo_files = len(kpi_df[kpi_df["NoGo/Go"] == "nogo"]) if "NoGo/Go" in kpi_df.columns else 0
+nogo = len(kpi_df[kpi_df["NoGo/Go"] == "nogo"]) if "NoGo/Go" in kpi_df.columns else 0
 
-go_percent = round((go_files / total_audited_files) * 100, 2) if total_audited_files else 0
-
-nogo_percent = round((nogo_files / total_audited_files) * 100, 2) if total_audited_files else 0
+go_pct = round((go / total) * 100, 2) if total else 0
+nogo_pct = round((nogo / total) * 100, 2) if total else 0
 
 st.subheader("📌 KPI Summary")
 
-col1, col2, col3, col4, col5 = st.columns(5)
+c1, c2, c3, c4, c5 = st.columns(5)
 
-col1.metric("Total", total_audited_files)
-col2.metric("Go", go_files)
-col3.metric("Go %", f"{go_percent}%")
-col4.metric("NoGo", nogo_files)
-col5.metric("NoGo %", f"{nogo_percent}%")
+c1.metric("Total", total)
+c2.metric("Go", go)
+c3.metric("Go %", f"{go_pct}%")
+c4.metric("NoGo", nogo)
+c5.metric("NoGo %", f"{nogo_pct}%")
+
+# ================= HELPER FUNCTION =================
+def build_pivot(df, index_col):
+    pivot = pd.pivot_table(
+        df,
+        index=index_col,
+        columns="NoGo/Go",
+        values="Account_name",
+        aggfunc="count",
+        fill_value=0
+    ).reset_index()
+
+    pivot.columns.name = None
+
+    pivot = pivot.rename(columns={
+        "go": "Go",
+        "nogo": "NoGo",
+        index_col: index_col
+    })
+
+    pivot["Go"] = pivot.get("Go", 0)
+    pivot["NoGo"] = pivot.get("NoGo", 0)
+
+    pivot["Total"] = pivot["Go"] + pivot["NoGo"]
+
+    pivot["NoGo%"] = pivot.apply(
+        lambda x: round((x["NoGo"] / x["Total"]) * 100, 2) if x["Total"] else 0,
+        axis=1
+    )
+
+    return pivot
 
 # ================= 3 PIVOTS =================
 col1, col2, col3 = st.columns(3)
@@ -118,36 +148,19 @@ with col1:
 
     if "Responsible_User_Name" in filtered_df.columns:
 
-        user_pivot = pd.pivot_table(
-            filtered_df,
-            index="Responsible_User_Name",
-            columns="NoGo/Go",
-            values="Account_name",
-            aggfunc="count",
-            fill_value=0
-        ).reset_index()
+        user_pivot = build_pivot(filtered_df, "Responsible_User_Name")
+        user_pivot = user_pivot.rename(columns={"Responsible_User_Name": "User"})
 
-        user_pivot.columns.name = None
-        user_pivot = user_pivot.rename(columns={
-            "Responsible_User_Name": "User",
-            "go": "Go",
-            "nogo": "NoGo"
-        })
-
-        user_pivot["Go"] = user_pivot.get("Go", 0)
-        user_pivot["NoGo"] = user_pivot.get("NoGo", 0)
-
-        user_pivot["Total"] = user_pivot["Go"] + user_pivot["NoGo"]
-        user_pivot["NoGo%"] = (user_pivot["NoGo"] / user_pivot["Total"] * 100).round(2)
-
-        user_pivot = pd.concat([user_pivot, pd.DataFrame([{
+        # Grand Total (NO SORT ISSUE)
+        gt = pd.DataFrame([{
             "User": "Grand Total",
             "Go": user_pivot["Go"].sum(),
             "NoGo": user_pivot["NoGo"].sum(),
             "Total": user_pivot["Total"].sum(),
             "NoGo%": round((user_pivot["NoGo"].sum() / user_pivot["Total"].sum()) * 100, 2)
-        }])], ignore_index=True)
+        }])
 
+        user_pivot = pd.concat([user_pivot, gt], ignore_index=True)
         user_pivot["NoGo%"] = user_pivot["NoGo%"].astype(str) + "%"
 
         st.dataframe(user_pivot, height=350, use_container_width=True)
@@ -158,35 +171,17 @@ with col2:
 
     if "Initial" in filtered_df.columns:
 
-        initial_pivot = pd.pivot_table(
-            filtered_df,
-            index="Initial",
-            columns="NoGo/Go",
-            values="Account_name",
-            aggfunc="count",
-            fill_value=0
-        ).reset_index()
+        initial_pivot = build_pivot(filtered_df, "Initial")
 
-        initial_pivot.columns.name = None
-        initial_pivot = initial_pivot.rename(columns={
-            "go": "Go",
-            "nogo": "NoGo"
-        })
-
-        initial_pivot["Go"] = initial_pivot.get("Go", 0)
-        initial_pivot["NoGo"] = initial_pivot.get("NoGo", 0)
-
-        initial_pivot["Total"] = initial_pivot["Go"] + initial_pivot["NoGo"]
-        initial_pivot["NoGo%"] = (initial_pivot["NoGo"] / initial_pivot["Total"] * 100).round(2)
-
-        initial_pivot = pd.concat([initial_pivot, pd.DataFrame([{
+        gt = pd.DataFrame([{
             "Initial": "Grand Total",
             "Go": initial_pivot["Go"].sum(),
             "NoGo": initial_pivot["NoGo"].sum(),
             "Total": initial_pivot["Total"].sum(),
             "NoGo%": round((initial_pivot["NoGo"].sum() / initial_pivot["Total"].sum()) * 100, 2)
-        }])], ignore_index=True)
+        }])
 
+        initial_pivot = pd.concat([initial_pivot, gt], ignore_index=True)
         initial_pivot["NoGo%"] = initial_pivot["NoGo%"].astype(str) + "%"
 
         st.dataframe(initial_pivot, height=350, use_container_width=True)
@@ -197,35 +192,17 @@ with col3:
 
     if "Doctor" in filtered_df.columns:
 
-        doctor_pivot = pd.pivot_table(
-            filtered_df,
-            index="Doctor",
-            columns="NoGo/Go",
-            values="Account_name",
-            aggfunc="count",
-            fill_value=0
-        ).reset_index()
+        doctor_pivot = build_pivot(filtered_df, "Doctor")
 
-        doctor_pivot.columns.name = None
-        doctor_pivot = doctor_pivot.rename(columns={
-            "go": "Go",
-            "nogo": "NoGo"
-        })
-
-        doctor_pivot["Go"] = doctor_pivot.get("Go", 0)
-        doctor_pivot["NoGo"] = doctor_pivot.get("NoGo", 0)
-
-        doctor_pivot["Total"] = doctor_pivot["Go"] + doctor_pivot["NoGo"]
-        doctor_pivot["NoGo%"] = (doctor_pivot["NoGo"] / doctor_pivot["Total"] * 100).round(2)
-
-        doctor_pivot = pd.concat([doctor_pivot, pd.DataFrame([{
+        gt = pd.DataFrame([{
             "Doctor": "Grand Total",
             "Go": doctor_pivot["Go"].sum(),
             "NoGo": doctor_pivot["NoGo"].sum(),
             "Total": doctor_pivot["Total"].sum(),
             "NoGo%": round((doctor_pivot["NoGo"].sum() / doctor_pivot["Total"].sum()) * 100, 2)
-        }])], ignore_index=True)
+        }])
 
+        doctor_pivot = pd.concat([doctor_pivot, gt], ignore_index=True)
         doctor_pivot["NoGo%"] = doctor_pivot["NoGo%"].astype(str) + "%"
 
         st.dataframe(doctor_pivot, height=350, use_container_width=True)
