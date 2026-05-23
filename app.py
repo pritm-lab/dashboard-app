@@ -105,7 +105,7 @@ c3.metric("Go %", f"{go_pct}%")
 c4.metric("NoGo", nogo)
 c5.metric("NoGo %", f"{nogo_pct}%")
 
-# ================= PIVOT FUNCTION (FIXED GRAND TOTAL + SORT) =================
+# ================= PIVOT FUNCTION =================
 def make_pivot(data, index_col, label):
 
     pivot = pd.pivot_table(
@@ -130,62 +130,105 @@ def make_pivot(data, index_col, label):
 
     pivot["Total"] = pivot["Go"] + pivot["NoGo"]
 
-    # numeric % (for logic only)
-    pivot["NoGo%_num"] = (pivot["NoGo"] / pivot["Total"] * 100).round(2)
+    pivot["NoGo%"] = (
+        (pivot["NoGo"] / pivot["Total"]) * 100
+    ).round(2)
 
-    # remove grand total if exists (safety)
-    pivot = pivot[pivot[label] != "Grand Total"]
+    # SORT
+    pivot = pivot.sort_values(
+        by="NoGo",
+        ascending=False
+    )
 
-    # sort ONLY real data
-    pivot = pivot.sort_values("NoGo", ascending=False)
-
-    # GRAND TOTAL (always bottom)
-    grand = pd.DataFrame([{
+    # GRAND TOTAL SEPARATE
+    grand_total = {
         label: "Grand Total",
         "Go": pivot["Go"].sum(),
         "NoGo": pivot["NoGo"].sum(),
         "Total": pivot["Total"].sum(),
-        "NoGo%_num": round(
-            (pivot["NoGo"].sum() / pivot["Total"].sum()) * 100, 2
+        "NoGo%": round(
+            (pivot["NoGo"].sum() / pivot["Total"].sum()) * 100,
+            2
         ) if pivot["Total"].sum() else 0
-    }])
+    }
 
-    pivot = pd.concat([pivot, grand], ignore_index=True)
+    # FORMAT %
+    pivot["NoGo%"] = pivot["NoGo%"].astype(str) + "%"
+    grand_total["NoGo%"] = str(grand_total["NoGo%"]) + "%"
 
-    # final display formatting
-    pivot["NoGo%"] = pivot["NoGo%_num"].astype(str) + "%"
-
-    return pivot[[label, "Go", "NoGo", "Total", "NoGo%"]]
-
-# ================= 3 PIVOTS =================
-col1, col2, col3 = st.columns(3)
+    return pivot, grand_total
 
 with col1:
     st.subheader("👤 User Wise")
+
     if "Responsible_User_Name" in filtered_df.columns:
+
+        user_pivot, user_total = make_pivot(
+            filtered_df,
+            "Responsible_User_Name",
+            "User"
+        )
+
         st.dataframe(
-            make_pivot(filtered_df, "Responsible_User_Name", "User"),
+            user_pivot,
             height=350,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.markdown("### Grand Total")
+        st.dataframe(
+            pd.DataFrame([user_total]),
             use_container_width=True,
             hide_index=True
         )
 
 with col2:
     st.subheader("🏥 Initial Wise")
+
     if "Initial" in filtered_df.columns:
+
+        initial_pivot, initial_total = make_pivot(
+            filtered_df,
+            "Initial",
+            "Initial"
+        )
+
         st.dataframe(
-            make_pivot(filtered_df, "Initial", "Initial"),
+            initial_pivot,
             height=350,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.markdown("### Grand Total")
+        st.dataframe(
+            pd.DataFrame([initial_total]),
             use_container_width=True,
             hide_index=True
         )
 
 with col3:
     st.subheader("🩺 Doctor Wise")
+
     if "Doctor" in filtered_df.columns:
+
+        doctor_pivot, doctor_total = make_pivot(
+            filtered_df,
+            "Doctor",
+            "Doctor"
+        )
+
         st.dataframe(
-            make_pivot(filtered_df, "Doctor", "Doctor"),
+            doctor_pivot,
             height=350,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.markdown("### Grand Total")
+        st.dataframe(
+            pd.DataFrame([doctor_total]),
             use_container_width=True,
             hide_index=True
         )
