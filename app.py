@@ -96,19 +96,3 @@ col2.metric("Go Files", go_files)
 col3.metric("Go %", go_percent)
 col4.metric("NoGo Files", nogo_files)
 col5.metric("NoGo %", nogo_percent)
-
-# ================= TABLE =================
-st.subheader("📄 Detailed Data Table")
-st.dataframe(kpi_df, use_container_width=True)
-
-# ================= CHARTS =================
-st.subheader("📊 Analysis")
-
-if "Doctor" in kpi_df.columns:
-    st.bar_chart(kpi_df["Doctor"].value_counts())
-
-if "Account_name" in kpi_df.columns:
-    st.bar_chart(kpi_df["Account_name"].value_counts())
-
-if "Responsible_User_Name" in kpi_df.columns:
-    st.bar_chart(kpi_df["Responsible_User_Name"].value_counts())
