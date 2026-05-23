@@ -167,6 +167,7 @@ with col1:
             make_pivot(filtered_df, "Responsible_User_Name", "User"),
             height=350,
             use_container_width=True
+            hide_index=True
         )
 
 with col2:
@@ -176,6 +177,7 @@ with col2:
             make_pivot(filtered_df, "Initial", "Initial"),
             height=350,
             use_container_width=True
+            hide_index=True
         )
 
 with col3:
@@ -185,4 +187,5 @@ with col3:
             make_pivot(filtered_df, "Doctor", "Doctor"),
             height=350,
             use_container_width=True
+            hide_index=True
         )
