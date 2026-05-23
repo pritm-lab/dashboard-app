@@ -66,6 +66,20 @@ user = st.sidebar.multiselect(
     default=[]
 )
 
+status_filter = st.sidebar.multiselect(
+    "Responsible User Status",
+    options=sorted(df["Responsible_User_Status"].dropna().unique())
+    if "Responsible_User_Status" in df.columns else [],
+    default=[]
+)
+
+initial_filter = st.sidebar.multiselect(
+    "Initial",
+    options=sorted(df["Initial"].dropna().unique())
+    if "Initial" in df.columns else [],
+    default=[]
+)
+
 tf_filter = st.sidebar.multiselect(
     "T/F",
     options=sorted(df[tf_col].dropna().unique())
@@ -89,6 +103,16 @@ if doctor:
 if user:
     filtered_df = filtered_df[
         filtered_df["Responsible_User_Name"].isin(user)
+    ]
+
+if status_filter:
+    filtered_df = filtered_df[
+        filtered_df["Responsible_User_Status"].isin(status_filter)
+    ]
+
+if initial_filter:
+    filtered_df = filtered_df[
+        filtered_df["Initial"].isin(initial_filter)
     ]
 
 if tf_col and tf_filter:
@@ -180,21 +204,6 @@ if (
         by="NoGo",
         ascending=False
     )
-
-    # ================= PIVOT FILTER =================
-
-    pivot_user_filter = st.multiselect(
-        "Filter User Name",
-        options=sorted(
-            pivot_df["User Name"].dropna().unique()
-        ),
-        default=[]
-    )
-
-    if pivot_user_filter:
-        pivot_df = pivot_df[
-            pivot_df["User Name"].isin(pivot_user_filter)
-        ]
 
     # ================= GRAND TOTAL =================
 
