@@ -220,7 +220,7 @@ with col1:
 
 with col2:
 
-    st.subheader("🔤 Initial Wise")
+    st.subheader("🏥 Hospital Initial Wise")
 
     if (
         "Initial" in filtered_df.columns
