@@ -105,6 +105,9 @@ c3.metric("Go %", f"{go_pct}%")
 c4.metric("NoGo", nogo)
 c5.metric("NoGo %", f"{nogo_pct}%")
 
+# ================= 3 PIVOTS =================
+col1, col2, col3 = st.columns(3)
+
 # ================= PIVOT FUNCTION =================
 def make_pivot(data, index_col, label):
 
