@@ -140,7 +140,6 @@ with col1:
         user_pivot["Total"] = user_pivot["Go"] + user_pivot["NoGo"]
         user_pivot["NoGo%"] = (user_pivot["NoGo"] / user_pivot["Total"] * 100).round(2)
 
-        # GRAND TOTAL
         user_pivot = pd.concat([user_pivot, pd.DataFrame([{
             "User": "Grand Total",
             "Go": user_pivot["Go"].sum(),
@@ -151,11 +150,11 @@ with col1:
 
         user_pivot["NoGo%"] = user_pivot["NoGo%"].astype(str) + "%"
 
-        st.table(user_pivot)
+        st.dataframe(user_pivot, height=350, use_container_width=True)
 
 # ---------------- INITIAL ----------------
 with col2:
-    st.subheader("🔤 Initial Wise")
+    st.subheader("🏥 Initial Wise")
 
     if "Initial" in filtered_df.columns:
 
@@ -190,7 +189,7 @@ with col2:
 
         initial_pivot["NoGo%"] = initial_pivot["NoGo%"].astype(str) + "%"
 
-        st.table(initial_pivot)
+        st.dataframe(initial_pivot, height=350, use_container_width=True)
 
 # ---------------- DOCTOR ----------------
 with col3:
@@ -229,4 +228,4 @@ with col3:
 
         doctor_pivot["NoGo%"] = doctor_pivot["NoGo%"].astype(str) + "%"
 
-        st.table(doctor_pivot)
+        st.dataframe(doctor_pivot, height=350, use_container_width=True)
