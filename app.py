@@ -96,3 +96,85 @@ col2.metric("Go Files", go_files)
 col3.metric("Go %", go_percent)
 col4.metric("NoGo Files", nogo_files)
 col5.metric("NoGo %", nogo_percent)
+
+# ================= USER WISE PIVOT =================
+
+st.subheader("📋 User Wise Quality Summary")
+
+if (
+    "Responsible_User_Name" in filtered_df.columns
+    and "NoGo/Go" in filtered_df.columns
+):
+
+    # Create Pivot
+    pivot_df = pd.pivot_table(
+        filtered_df,
+        index="Responsible_User_Name",
+        columns="NoGo/Go",
+        values="Account_name",   # any column works for count
+        aggfunc="count",
+        fill_value=0
+    ).reset_index()
+
+    # Rename columns properly
+    pivot_df.columns.name = None
+
+    if "go" not in pivot_df.columns:
+        pivot_df["go"] = 0
+
+    if "nogo" not in pivot_df.columns:
+        pivot_df["nogo"] = 0
+
+    # Rename columns
+    pivot_df = pivot_df.rename(columns={
+        "Responsible_User_Name": "User Name",
+        "go": "Go",
+        "nogo": "NoGo"
+    })
+
+    # Grand Total
+    pivot_df["Grand Total"] = pivot_df["Go"] + pivot_df["NoGo"]
+
+    # NoGo %
+    pivot_df["NoGo%"] = (
+        (pivot_df["NoGo"] / pivot_df["Grand Total"]) * 100
+    ).round(2)
+
+    # Sort by NoGo desc (optional)
+    pivot_df = pivot_df.sort_values(
+        by="NoGo",
+        ascending=False
+    )
+
+    # ================= GRAND TOTAL ROW =================
+
+    total_go = pivot_df["Go"].sum()
+    total_nogo = pivot_df["NoGo"].sum()
+    total_grand = pivot_df["Grand Total"].sum()
+
+    total_nogo_percent = round(
+        (total_nogo / total_grand) * 100, 2
+    ) if total_grand else 0
+
+    grand_total_row = pd.DataFrame([{
+        "User Name": "Grand Total",
+        "Go": total_go,
+        "NoGo": total_nogo,
+        "Grand Total": total_grand,
+        "NoGo%": total_nogo_percent
+    }])
+
+    pivot_df = pd.concat(
+        [pivot_df, grand_total_row],
+        ignore_index=True
+    )
+
+    # Format %
+    pivot_df["NoGo%"] = pivot_df["NoGo%"].astype(str) + "%"
+
+    # Display
+    st.dataframe(
+        pivot_df,
+        use_container_width=True,
+        hide_index=True
+    )
