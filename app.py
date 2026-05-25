@@ -73,7 +73,7 @@ tf_filter = st.sidebar.multiselect(
 filtered_df = df.copy()
 
 if Date:
-    filtered_df = filtered_df[filtered_df["Audited Date"].isin(account)]
+    filtered_df = filtered_df[filtered_df["Audited Date"].isin(Date)]
 if account:
     filtered_df = filtered_df[filtered_df["Account_name"].isin(account)]
 if doctor:
