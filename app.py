@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 st.set_page_config(page_title="MIS Dashboard", layout="wide")
-st.title("📊 MIS & Quality Dashboard")
+st.title("📊 CQA Go/NoGo Dashboard")
 
 # ---------------- LOAD DATA ----------------
 df = pd.read_excel("Primary Analysis 042426.xlsx", sheet_name="Data")
