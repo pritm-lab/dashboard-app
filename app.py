@@ -72,20 +72,27 @@ tf_filter = st.sidebar.multiselect(
 )
 
 # ================= APPLY FILTERS =================
+
 filtered_df = df.copy()
 
 if Date:
-    filtered_df = filtered_df[filtered_df["Audited Date"].isin(account)]
+    filtered_df = filtered_df[filtered_df["Audited Date"].isin(Date)]
+
 if account:
     filtered_df = filtered_df[filtered_df["Account_name"].isin(account)]
+
 if doctor:
     filtered_df = filtered_df[filtered_df["Doctor"].isin(doctor)]
+
 if user:
     filtered_df = filtered_df[filtered_df["Responsible_User_Name"].isin(user)]
+
 if status_filter:
     filtered_df = filtered_df[filtered_df["Responsible_User_Status"].isin(status_filter)]
+
 if initial_filter:
     filtered_df = filtered_df[filtered_df["Initial"].isin(initial_filter)]
+
 if tf_col and tf_filter:
     filtered_df = filtered_df[filtered_df[tf_col].isin(tf_filter)]
 
