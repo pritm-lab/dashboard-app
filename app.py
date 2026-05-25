@@ -153,10 +153,7 @@ with col1:
         user_pivot = user_pivot.sort_values(by="NoGo%_num", ascending=False)
 
         st.dataframe(
-            user_pivot.style.background_gradient(
-                subset=["NoGo%_num"],
-                cmap="Reds"
-            ),
+            user_pivot,
             hide_index=True,
             height=400,
             use_container_width=True
@@ -197,7 +194,12 @@ with col2:
 
         initial_pivot = initial_pivot.sort_values(by="NoGo%_num", ascending=False)
 
-        st.dataframe(initial_pivot, hide_index=True, height=400, use_container_width=True)
+        st.dataframe(
+            initial_pivot,
+            hide_index=True,
+            height=400,
+            use_container_width=True
+        )
 
 # =========================================================
 # DOCTOR WISE
@@ -235,10 +237,7 @@ with col3:
         doctor_pivot = doctor_pivot.sort_values(by="NoGo%_num", ascending=False)
 
         st.dataframe(
-            doctor_pivot.style.background_gradient(
-                subset=["NoGo%_num"],
-                cmap="Reds"
-            ),
+            doctor_pivot,
             hide_index=True,
             height=400,
             use_container_width=True
