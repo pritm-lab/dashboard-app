@@ -147,8 +147,8 @@ with col1:
         user_pivot["Total"] = user_pivot["Go"] + user_pivot["NoGo"]
 
         user_pivot["NoGo%"] = (
-            user_pivot["NoGo"] / user_pivot["Total"] * 100
-        ).round(2)
+            user_pivot["NoGo"] / user_pivot["Total"].replace(0, 1) * 100
+        ).map(lambda x: f"{x:.2f}")
 
         user_pivot = user_pivot.sort_values(by="NoGo%", ascending=False)
 
@@ -182,8 +182,8 @@ with col2:
         initial_pivot["Total"] = initial_pivot["Go"] + initial_pivot["NoGo"]
 
         initial_pivot["NoGo%"] = (
-            initial_pivot["NoGo"] / initial_pivot["Total"] * 100
-        ).round(2)
+            initial_pivot["NoGo"] / initial_pivot["Total"].replace(0, 1) * 100
+        ).map(lambda x: f"{x:.2f}")
 
         initial_pivot = initial_pivot.sort_values(by="NoGo%", ascending=False)
 
@@ -217,8 +217,8 @@ with col3:
         doctor_pivot["Total"] = doctor_pivot["Go"] + doctor_pivot["NoGo"]
 
         doctor_pivot["NoGo%"] = (
-            doctor_pivot["NoGo"] / doctor_pivot["Total"] * 100
-        ).round(2)
+            doctor_pivot["NoGo"] / doctor_pivot["Total"].replace(0, 1) * 100
+        ).map(lambda x: f"{x:.2f}")
 
         doctor_pivot = doctor_pivot.sort_values(by="NoGo%", ascending=False)
 
