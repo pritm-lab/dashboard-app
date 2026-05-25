@@ -116,9 +116,7 @@ col5.metric("NoGo %", f"{nogo_percent}%")
 # ================= PIVOTS =================
 col1, col2, col3 = st.columns(3)
 
-# =========================================================
-# USER WISE
-# =========================================================
+# ================= USER WISE =================
 with col1:
 
     st.subheader("👤 User Wise")
@@ -153,15 +151,16 @@ with col1:
         user_pivot = user_pivot.sort_values(by="NoGo%_num", ascending=False)
 
         st.dataframe(
-            user_pivot,
+            user_pivot.style.background_gradient(
+                subset=["NoGo%_num"],
+                cmap="Reds"
+            ),
             hide_index=True,
             height=400,
             use_container_width=True
         )
 
-# =========================================================
-# INITIAL WISE
-# =========================================================
+# ================= INITIAL WISE =================
 with col2:
 
     st.subheader("🔤 Initial Wise")
@@ -194,16 +193,9 @@ with col2:
 
         initial_pivot = initial_pivot.sort_values(by="NoGo%_num", ascending=False)
 
-        st.dataframe(
-            initial_pivot,
-            hide_index=True,
-            height=400,
-            use_container_width=True
-        )
+        st.dataframe(initial_pivot, hide_index=True, height=400, use_container_width=True)
 
-# =========================================================
-# DOCTOR WISE
-# =========================================================
+# ================= DOCTOR WISE =================
 with col3:
 
     st.subheader("🩺 Doctor Wise")
@@ -237,7 +229,10 @@ with col3:
         doctor_pivot = doctor_pivot.sort_values(by="NoGo%_num", ascending=False)
 
         st.dataframe(
-            doctor_pivot,
+            doctor_pivot.style.background_gradient(
+                subset=["NoGo%_num"],
+                cmap="Reds"
+            ),
             hide_index=True,
             height=400,
             use_container_width=True
