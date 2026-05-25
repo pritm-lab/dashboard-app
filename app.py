@@ -103,7 +103,7 @@ col5.metric("NoGo %", f"{nogo_percent}%")
 # ================= PIVOTS =================
 col1, col2, col3 = st.columns(3)
 
-# ================= USER =================
+# ================= USER WISE =================
 with col1:
     st.subheader("👤 User Wise")
 
