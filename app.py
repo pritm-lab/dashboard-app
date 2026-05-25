@@ -137,7 +137,7 @@ with col1:
 
 # ================= INITIAL =================
 with col2:
-    st.subheader("🔤 Initial Wise")
+    st.subheader("🏥 Initial Wise")
 
     if "Initial" in filtered_df.columns:
 
