@@ -33,6 +33,11 @@ if "NoGo/Go" in df.columns:
 # ================= FILTERS =================
 st.sidebar.header("🔍 Filters")
 
+Date = st.sidebar.multiselect(
+    "Date",
+    options=sorted(df["Audited Date"].dropna().unique()) if "Audited Date" in df.columns else []
+)
+
 account = st.sidebar.multiselect(
     "Account",
     options=sorted(df["Account_name"].dropna().unique()) if "Account_name" in df.columns else []
@@ -67,6 +72,8 @@ tf_filter = st.sidebar.multiselect(
 # ================= APPLY FILTERS =================
 filtered_df = df.copy()
 
+if Date:
+    filtered_df = filtered_df[filtered_df["Audited Date"].isin(account)]
 if account:
     filtered_df = filtered_df[filtered_df["Account_name"].isin(account)]
 if doctor:
