@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 
 st.set_page_config(page_title="MIS Dashboard", layout="wide")
-
 st.title("📊 MIS & Quality Dashboard")
 
 # ---------------- LOAD DATA ----------------
@@ -36,38 +35,32 @@ st.sidebar.header("🔍 Filters")
 
 account = st.sidebar.multiselect(
     "Account",
-    options=sorted(df["Account_name"].dropna().unique())
-    if "Account_name" in df.columns else []
+    options=sorted(df["Account_name"].dropna().unique()) if "Account_name" in df.columns else []
 )
 
 doctor = st.sidebar.multiselect(
     "Doctor",
-    options=sorted(df["Doctor"].dropna().unique())
-    if "Doctor" in df.columns else []
+    options=sorted(df["Doctor"].dropna().unique()) if "Doctor" in df.columns else []
 )
 
 user = st.sidebar.multiselect(
     "User",
-    options=sorted(df["Responsible_User_Name"].dropna().unique())
-    if "Responsible_User_Name" in df.columns else []
+    options=sorted(df["Responsible_User_Name"].dropna().unique()) if "Responsible_User_Name" in df.columns else []
 )
 
 status_filter = st.sidebar.multiselect(
     "Responsible User Status",
-    options=sorted(df["Responsible_User_Status"].dropna().unique())
-    if "Responsible_User_Status" in df.columns else []
+    options=sorted(df["Responsible_User_Status"].dropna().unique()) if "Responsible_User_Status" in df.columns else []
 )
 
 initial_filter = st.sidebar.multiselect(
     "Initial",
-    options=sorted(df["Initial"].dropna().unique())
-    if "Initial" in df.columns else []
+    options=sorted(df["Initial"].dropna().unique()) if "Initial" in df.columns else []
 )
 
 tf_filter = st.sidebar.multiselect(
     "T/F",
-    options=sorted(df[tf_col].dropna().unique())
-    if tf_col else [],
+    options=sorted(df[tf_col].dropna().unique()) if tf_col else [],
     default=["false"] if tf_col else []
 )
 
@@ -76,19 +69,14 @@ filtered_df = df.copy()
 
 if account:
     filtered_df = filtered_df[filtered_df["Account_name"].isin(account)]
-
 if doctor:
     filtered_df = filtered_df[filtered_df["Doctor"].isin(doctor)]
-
 if user:
     filtered_df = filtered_df[filtered_df["Responsible_User_Name"].isin(user)]
-
 if status_filter:
     filtered_df = filtered_df[filtered_df["Responsible_User_Status"].isin(status_filter)]
-
 if initial_filter:
     filtered_df = filtered_df[filtered_df["Initial"].isin(initial_filter)]
-
 if tf_col and tf_filter:
     filtered_df = filtered_df[filtered_df[tf_col].isin(tf_filter)]
 
@@ -106,7 +94,6 @@ nogo_percent = round((nogo_files / total_audited_files) * 100, 2) if total_audit
 st.subheader("📌 KPI Summary")
 
 col1, col2, col3, col4, col5 = st.columns(5)
-
 col1.metric("Total Audited Files", total_audited_files)
 col2.metric("Go Files", go_files)
 col3.metric("Go %", f"{go_percent}%")
@@ -116,12 +103,11 @@ col5.metric("NoGo %", f"{nogo_percent}%")
 # ================= PIVOTS =================
 col1, col2, col3 = st.columns(3)
 
-# ================= USER WISE =================
+# ================= USER =================
 with col1:
-
     st.subheader("👤 User Wise")
 
-    if "Responsible_User_Name" in filtered_df.columns and "NoGo/Go" in filtered_df.columns:
+    if "Responsible_User_Name" in filtered_df.columns:
 
         user_pivot = pd.pivot_table(
             filtered_df,
@@ -133,7 +119,6 @@ with col1:
         ).reset_index()
 
         user_pivot.columns.name = None
-
         user_pivot["go"] = user_pivot.get("go", 0)
         user_pivot["nogo"] = user_pivot.get("nogo", 0)
 
@@ -144,28 +129,17 @@ with col1:
         })
 
         user_pivot["Total"] = user_pivot["Go"] + user_pivot["NoGo"]
+        user_pivot["NoGo%"] = (user_pivot["NoGo"] / user_pivot["Total"] * 100).round(2)
 
-        user_pivot["NoGo%_num"] = (user_pivot["NoGo"] / user_pivot["Total"] * 100).round(2)
-        user_pivot["NoGo%"] = user_pivot["NoGo%_num"].astype(str) + "%"
+        user_pivot = user_pivot.sort_values(by="NoGo%", ascending=False)
 
-        user_pivot = user_pivot.sort_values(by="NoGo%_num", ascending=False)
+        st.dataframe(user_pivot, hide_index=True, use_container_width=True)
 
-        st.dataframe(
-            user_pivot.style.background_gradient(
-                subset=["NoGo%_num"],
-                cmap="Reds"
-            ),
-            hide_index=True,
-            height=400,
-            use_container_width=True
-        )
-
-# ================= INITIAL WISE =================
+# ================= INITIAL =================
 with col2:
-
     st.subheader("🔤 Initial Wise")
 
-    if "Initial" in filtered_df.columns and "NoGo/Go" in filtered_df.columns:
+    if "Initial" in filtered_df.columns:
 
         initial_pivot = pd.pivot_table(
             filtered_df,
@@ -177,7 +151,6 @@ with col2:
         ).reset_index()
 
         initial_pivot.columns.name = None
-
         initial_pivot["go"] = initial_pivot.get("go", 0)
         initial_pivot["nogo"] = initial_pivot.get("nogo", 0)
 
@@ -187,20 +160,17 @@ with col2:
         })
 
         initial_pivot["Total"] = initial_pivot["Go"] + initial_pivot["NoGo"]
+        initial_pivot["NoGo%"] = (initial_pivot["NoGo"] / initial_pivot["Total"] * 100).round(2)
 
-        initial_pivot["NoGo%_num"] = (initial_pivot["NoGo"] / initial_pivot["Total"] * 100).round(2)
-        initial_pivot["NoGo%"] = initial_pivot["NoGo%_num"].astype(str) + "%"
+        initial_pivot = initial_pivot.sort_values(by="NoGo%", ascending=False)
 
-        initial_pivot = initial_pivot.sort_values(by="NoGo%_num", ascending=False)
+        st.dataframe(initial_pivot, hide_index=True, use_container_width=True)
 
-        st.dataframe(initial_pivot, hide_index=True, height=400, use_container_width=True)
-
-# ================= DOCTOR WISE =================
+# ================= DOCTOR =================
 with col3:
-
     st.subheader("🩺 Doctor Wise")
 
-    if "Doctor" in filtered_df.columns and "NoGo/Go" in filtered_df.columns:
+    if "Doctor" in filtered_df.columns:
 
         doctor_pivot = pd.pivot_table(
             filtered_df,
@@ -212,7 +182,6 @@ with col3:
         ).reset_index()
 
         doctor_pivot.columns.name = None
-
         doctor_pivot["go"] = doctor_pivot.get("go", 0)
         doctor_pivot["nogo"] = doctor_pivot.get("nogo", 0)
 
@@ -222,18 +191,8 @@ with col3:
         })
 
         doctor_pivot["Total"] = doctor_pivot["Go"] + doctor_pivot["NoGo"]
+        doctor_pivot["NoGo%"] = (doctor_pivot["NoGo"] / doctor_pivot["Total"] * 100).round(2)
 
-        doctor_pivot["NoGo%_num"] = (doctor_pivot["NoGo"] / doctor_pivot["Total"] * 100).round(2)
-        doctor_pivot["NoGo%"] = doctor_pivot["NoGo%_num"].astype(str) + "%"
+        doctor_pivot = doctor_pivot.sort_values(by="NoGo%", ascending=False)
 
-        doctor_pivot = doctor_pivot.sort_values(by="NoGo%_num", ascending=False)
-
-        st.dataframe(
-            doctor_pivot.style.background_gradient(
-                subset=["NoGo%_num"],
-                cmap="Reds"
-            ),
-            hide_index=True,
-            height=400,
-            use_container_width=True
-        )
+        st.dataframe(doctor_pivot, hide_index=True, use_container_width=True)
