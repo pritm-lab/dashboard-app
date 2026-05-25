@@ -33,6 +33,8 @@ if "NoGo/Go" in df.columns:
 # ================= FILTERS =================
 st.sidebar.header("🔍 Filters")
 
+df["Audited Date"] = pd.to_datetime(df["Audited Date"]).dt.date
+
 Date = st.sidebar.multiselect(
     "Date",
     options=sorted(df["Audited Date"].dropna().unique()) if "Audited Date" in df.columns else []
@@ -70,12 +72,6 @@ tf_filter = st.sidebar.multiselect(
 )
 
 # ================= APPLY FILTERS =================
-df["Audited Date"] = pd.to_datetime(df["Audited Date"]).dt.date
-
-Date = st.sidebar.multiselect(
-    "Date",
-    options=sorted(df["Audited Date"].dropna().unique()) if "Audited Date" in df.columns else []
-)
 
 filtered_df = df.copy()
 
