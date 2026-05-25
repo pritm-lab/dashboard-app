@@ -145,12 +145,14 @@ with col1:
         })
 
         user_pivot["Total"] = user_pivot["Go"] + user_pivot["NoGo"]
-
-        user_pivot["NoGo%"] = (
+        
+        user_pivot["NoGo%_num"] = (
             user_pivot["NoGo"] / user_pivot["Total"].replace(0, 1) * 100
-        ).round(2)
-
-        user_pivot = user_pivot.sort_values(by="NoGo%", ascending=False)
+        )
+        
+        user_pivot["NoGo%"] = user_pivot["NoGo%_num"].round(0).astype(int).astype(str) + "%"
+        
+        user_pivot = user_pivot.sort_values(by="NoGo%_num", ascending=False)
 
         st.dataframe(user_pivot, hide_index=True, use_container_width=True)
 
@@ -180,12 +182,14 @@ with col2:
         })
 
         initial_pivot["Total"] = initial_pivot["Go"] + initial_pivot["NoGo"]
-
-        initial_pivot["NoGo%"] = (
+        
+        initial_pivot["NoGo%_num"] = (
             initial_pivot["NoGo"] / initial_pivot["Total"].replace(0, 1) * 100
-        ).round(2)
-
-        initial_pivot = initial_pivot.sort_values(by="NoGo%", ascending=False)
+        )
+        
+        initial_pivot["NoGo%"] = initial_pivot["NoGo%_num"].round(0).astype(int).astype(str) + "%"
+        
+        initial_pivot = initial_pivot.sort_values(by="NoGo%_num", ascending=False)
 
         st.dataframe(initial_pivot, hide_index=True, use_container_width=True)
 
@@ -215,11 +219,13 @@ with col3:
         })
 
         doctor_pivot["Total"] = doctor_pivot["Go"] + doctor_pivot["NoGo"]
-
-        doctor_pivot["NoGo%"] = (
+        
+        doctor_pivot["NoGo%_num"] = (
             doctor_pivot["NoGo"] / doctor_pivot["Total"].replace(0, 1) * 100
-        ).round(2)
-
-        doctor_pivot = doctor_pivot.sort_values(by="NoGo%", ascending=False)
+        )
+        
+        doctor_pivot["NoGo%"] = doctor_pivot["NoGo%_num"].round(0).astype(int).astype(str) + "%"
+        
+        doctor_pivot = doctor_pivot.sort_values(by="NoGo%_num", ascending=False)
 
         st.dataframe(doctor_pivot, hide_index=True, use_container_width=True)
