@@ -131,23 +131,15 @@ with col1:
         user_pivot["Total"] = user_pivot["Go"] + user_pivot["NoGo"]
 
         user_pivot["NoGo%"] = (
-            (user_pivot["NoGo"] / user_pivot["Total"] * 100)
-        ).map("{:.2f}".format)
-
-        user_pivot["NoGo%_sort"] = (
             user_pivot["NoGo"] / user_pivot["Total"] * 100
-        )
+        ).round(2)
 
-        user_pivot = user_pivot.sort_values(
-            by="NoGo%_sort",
-            ascending=False
-        )
-
-        user_pivot = user_pivot.drop(columns=["NoGo%_sort"])
+        user_pivot = user_pivot.sort_values(by="NoGo%", ascending=False)
 
         st.dataframe(user_pivot, hide_index=True, use_container_width=True)
 
-# ================= INITIAL =================
+
+# ================= INITIAL WISE =================
 with col2:
     st.subheader("🏥 Initial Wise")
 
@@ -174,23 +166,15 @@ with col2:
         initial_pivot["Total"] = initial_pivot["Go"] + initial_pivot["NoGo"]
 
         initial_pivot["NoGo%"] = (
-            (initial_pivot["NoGo"] / initial_pivot["Total"] * 100)
-        ).map("{:.2f}".format)
-
-        initial_pivot["NoGo%_sort"] = (
             initial_pivot["NoGo"] / initial_pivot["Total"] * 100
-        )
+        ).round(2)
 
-        initial_pivot = initial_pivot.sort_values(
-            by="NoGo%_sort",
-            ascending=False
-        )
-
-        initial_pivot = initial_pivot.drop(columns=["NoGo%_sort"])
+        initial_pivot = initial_pivot.sort_values(by="NoGo%", ascending=False)
 
         st.dataframe(initial_pivot, hide_index=True, use_container_width=True)
 
-# ================= DOCTOR =================
+
+# ================= DOCTOR WISE =================
 with col3:
     st.subheader("🩺 Doctor Wise")
 
@@ -217,18 +201,9 @@ with col3:
         doctor_pivot["Total"] = doctor_pivot["Go"] + doctor_pivot["NoGo"]
 
         doctor_pivot["NoGo%"] = (
-            (doctor_pivot["NoGo"] / doctor_pivot["Total"] * 100)
-        ).map("{:.2f}".format)
-
-        doctor_pivot["NoGo%_sort"] = (
             doctor_pivot["NoGo"] / doctor_pivot["Total"] * 100
-        )
+        ).round(2)
 
-        doctor_pivot = doctor_pivot.sort_values(
-            by="NoGo%_sort",
-            ascending=False
-        )
-
-        doctor_pivot = doctor_pivot.drop(columns=["NoGo%_sort"])
+        doctor_pivot = doctor_pivot.sort_values(by="NoGo%", ascending=False)
 
         st.dataframe(doctor_pivot, hide_index=True, use_container_width=True)
