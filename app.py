@@ -567,7 +567,7 @@ st.header("🏆 Performance Summary")
 left, right = st.columns(2)
 
 # =====================================================
-# BEST PERFORMERS
+# BEST PERFORMERS (High Go volumes, Low NoGo %)
 # =====================================================
 
 with left:
@@ -576,11 +576,12 @@ with left:
 
     if len(user_pivot):
 
+        # Sort by highest number of 'Go' files, then lowest 'NoGo %'
         best_users = (
             user_pivot[user_pivot["Total"] > 0]
             .sort_values(
-                ["NoGo %", "Total"],
-                ascending=[True, False]
+                ["Go", "NoGo %"],
+                ascending=[False, True]
             )
             .head(10)
         )
@@ -594,10 +595,11 @@ with left:
         fig = px.bar(
             best_users,
             x="User",
-            y="NoGo %",
-            color="NoGo %",
-            text="NoGo %",
-            title="Top 10 Best Users"
+            y="Go",  # Changed to show their successful 'Go' count
+            color="Go",
+            text="Go",
+            title="Top 10 Users by Go Files",
+            color_continuous_scale="Viridis" # Gives it a nice distinct look
         )
 
         st.plotly_chart(
@@ -606,7 +608,7 @@ with left:
         )
 
 # =====================================================
-# WORST PERFORMERS
+# WORST PERFORMERS (High NoGo volumes)
 # =====================================================
 
 with right:
@@ -615,10 +617,11 @@ with right:
 
     if len(user_pivot):
 
+        # Sort by highest number of 'NoGo' files, then highest 'NoGo %'
         worst_users = (
             user_pivot[user_pivot["Total"] > 0]
             .sort_values(
-                ["NoGo %", "Total"],
+                ["NoGo", "NoGo %"],
                 ascending=[False, False]
             )
             .head(10)
@@ -633,17 +636,18 @@ with right:
         fig = px.bar(
             worst_users,
             x="User",
-            y="NoGo %",
-            color="NoGo %",
-            text="NoGo %",
-            title="Top 10 Worst Users"
+            y="NoGo", # Keeps focus on where the errors are
+            color="NoGo",
+            text="NoGo",
+            title="Top 10 Users by NoGo Files",
+            color_continuous_scale="Reds" # Red alert look for errors
         )
 
         st.plotly_chart(
             fig,
             use_container_width=True
         )
-
+        
 # =====================================================
 # MONTHLY TREND
 # =====================================================
