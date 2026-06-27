@@ -179,7 +179,7 @@ if tf_filter:
     ]
 
 # =====================================================
-# KPI
+# KPI SUMMARY
 # =====================================================
 
 total_files = len(filtered_df)
@@ -210,37 +210,28 @@ st.subheader("📌 KPI Summary")
 
 k1,k2,k3,k4,k5 = st.columns(5)
 
-k1.metric(
-    "📄 Total Files",
-    total_files
-)
+k1.metric("📄 Total Files", total_files)
+k2.metric("✅ Go", go_files)
+k3.metric("🟢 Go %", f"{go_percent}%")
+k4.metric("❌ NoGo", nogo_files)
+k5.metric("🔴 NoGo %", f"{nogo_percent}%")
 
-k2.metric(
-    "✅ Go",
-    go_files
-)
-
-k3.metric(
-    "🟢 Go %",
-    f"{go_percent}%"
-)
-
-k4.metric(
-    "❌ NoGo",
-    nogo_files
-)
-
-k5.metric(
-    "🔴 NoGo %",
-    f"{nogo_percent}%"
-)
 
 # =====================================================
-# DOWNLOAD BUTTON
+# DASHBOARD SUMMARY (Moved up to 2nd position)
 # =====================================================
+st.markdown("---")
+st.subheader("📋 Dashboard Overview")
+
+s1, s2, s3, s4 = st.columns(4)
+
+s1.metric("👤 Unique Users", filtered_df["Responsible_User_Name"].nunique())
+s2.metric("🏥 Unique Initials", filtered_df["Initial"].nunique())
+s3.metric("🩺 Unique Doctors", filtered_df["Doctor"].nunique())
+s4.metric("🏢 Unique Accounts", filtered_df["Account_name"].nunique())
 
 st.download_button(
-    "⬇ Download Filtered Data",
+    "⬇ Download Filtered Raw Data",
     download_csv(filtered_df),
     "Filtered_Data.csv",
     "text/csv"
@@ -249,7 +240,7 @@ st.download_button(
 # =====================================================
 # GO / NOGO CHART
 # =====================================================
-
+st.markdown("---")
 chart_col1, chart_col2 = st.columns(2)
 
 with chart_col1:
@@ -258,7 +249,9 @@ with chart_col1:
         names=["Go","NoGo"],
         values=[go_files,nogo_files],
         hole=.55,
-        title="Go vs NoGo"
+        title="Go vs NoGo Distribution",
+        color_discrete_sequence=["#2ecc71", "#e74c3c"], # Green for Go, Red for NoGo
+        template="seaborn"
     )
 
     st.plotly_chart(
@@ -282,8 +275,10 @@ with chart_col2:
             x="Audited Date",
             y="Files",
             markers=True,
-            title="Daily Audit Trend"
+            title="Daily Audit Trend",
+            template="seaborn"
         )
+        fig.update_traces(line_color="#3498db", marker=dict(size=8))
 
         st.plotly_chart(
             fig,
@@ -374,20 +369,15 @@ with tab1:
             y="NoGo",
             color="NoGo",
             text="NoGo",
-            title="Top 10 NoGo Users"
+            title="Top 10 NoGo Users",
+            template="seaborn",
+            color_continuous_scale="Reds"
         )
 
         st.plotly_chart(
             fig,
             use_container_width=True
         )
-
-    st.download_button(
-        "⬇ Download User Pivot",
-        user_pivot.to_csv(index=False),
-        "User_Pivot.csv",
-        "text/csv"
-    )
 
 # =====================================================
 # INITIAL WISE
@@ -458,20 +448,15 @@ with tab2:
             y="NoGo %",
             color="NoGo %",
             text="NoGo %",
-            title="Initial Wise NoGo %"
+            title="Initial Wise NoGo %",
+            template="seaborn",
+            color_continuous_scale="Purples"
         )
 
         st.plotly_chart(
             fig,
             use_container_width=True
         )
-
-    st.download_button(
-        "⬇ Download Initial Pivot",
-        initial_pivot.to_csv(index=False),
-        "Initial_Pivot.csv",
-        "text/csv"
-    )
 
 # =====================================================
 # DOCTOR WISE
@@ -542,20 +527,15 @@ with tab3:
             y="NoGo",
             color="NoGo",
             text="NoGo",
-            title="Top 10 Doctors (NoGo)"
+            title="Top 10 Doctors (NoGo)",
+            template="seaborn",
+            color_continuous_scale="Oranges"
         )
 
         st.plotly_chart(
             fig,
             use_container_width=True
         )
-
-    st.download_button(
-        "⬇ Download Doctor Pivot",
-        doctor_pivot.to_csv(index=False),
-        "Doctor_Pivot.csv",
-        "text/csv"
-    )
 
 # =====================================================
 # PERFORMANCE SUMMARY
@@ -576,7 +556,6 @@ with left:
 
     if len(user_pivot):
 
-        # Sort by highest number of 'Go' files, then lowest 'NoGo %'
         best_users = (
             user_pivot[user_pivot["Total"] > 0]
             .sort_values(
@@ -595,11 +574,12 @@ with left:
         fig = px.bar(
             best_users,
             x="User",
-            y="Go",  # Changed to show their successful 'Go' count
+            y="Go",  
             color="Go",
             text="Go",
             title="Top 10 Users by Go Files",
-            color_continuous_scale="Viridis" # Gives it a nice distinct look
+            template="seaborn",
+            color_continuous_scale="Viridis" 
         )
 
         st.plotly_chart(
@@ -617,7 +597,6 @@ with right:
 
     if len(user_pivot):
 
-        # Sort by highest number of 'NoGo' files, then highest 'NoGo %'
         worst_users = (
             user_pivot[user_pivot["Total"] > 0]
             .sort_values(
@@ -636,11 +615,12 @@ with right:
         fig = px.bar(
             worst_users,
             x="User",
-            y="NoGo", # Keeps focus on where the errors are
+            y="NoGo", 
             color="NoGo",
             text="NoGo",
             title="Top 10 Users by NoGo Files",
-            color_continuous_scale="Reds" # Red alert look for errors
+            template="seaborn",
+            color_continuous_scale="Reds" 
         )
 
         st.plotly_chart(
@@ -678,7 +658,9 @@ if "Audited Date" in filtered_df.columns:
         y="Files",
         color="NoGo/Go",
         barmode="group",
-        title="Monthly Go / NoGo Trend"
+        title="Monthly Go / NoGo Trend",
+        template="seaborn",
+        color_discrete_map={"go": "#2ecc71", "nogo": "#e74c3c"}
     )
 
     st.plotly_chart(
@@ -708,7 +690,9 @@ fig = px.bar(
     y="Files",
     color="Status",
     barmode="stack",
-    title="User Wise Go / NoGo"
+    title="User Wise Go / NoGo Breakdown",
+    template="seaborn",
+    color_discrete_map={"Go": "#2ecc71", "NoGo": "#e74c3c"}
 )
 
 st.plotly_chart(
@@ -717,45 +701,15 @@ st.plotly_chart(
 )
 
 # =====================================================
-# OVERALL SUMMARY
+# DOWNLOAD ALL PIVOTS (At the very bottom)
 # =====================================================
 
 st.markdown("---")
-st.header("📋 Dashboard Summary")
-
-s1, s2, s3, s4 = st.columns(4)
-
-s1.metric(
-    "👤 Users",
-    filtered_df["Responsible_User_Name"].nunique()
-)
-
-s2.metric(
-    "🏥 Initials",
-    filtered_df["Initial"].nunique()
-)
-
-s3.metric(
-    "🩺 Doctors",
-    filtered_df["Doctor"].nunique()
-)
-
-s4.metric(
-    "🏢 Accounts",
-    filtered_df["Account_name"].nunique()
-)
-
-# =====================================================
-# DOWNLOAD ALL PIVOTS
-# =====================================================
-
-st.markdown("---")
-st.subheader("⬇ Downloads")
+st.subheader("⬇ Pivot Table Downloads")
 
 d1, d2, d3 = st.columns(3)
 
 with d1:
-
     st.download_button(
         "Download User Pivot",
         user_pivot.to_csv(index=False),
@@ -764,7 +718,6 @@ with d1:
     )
 
 with d2:
-
     st.download_button(
         "Download Initial Pivot",
         initial_pivot.to_csv(index=False),
@@ -773,7 +726,6 @@ with d2:
     )
 
 with d3:
-
     st.download_button(
         "Download Doctor Pivot",
         doctor_pivot.to_csv(index=False),
@@ -788,5 +740,5 @@ with d3:
 st.markdown("---")
 
 st.caption(
-    "Developed using Streamlit | CQA Go / NoGo Dashboard | Version 1.0"
+    "Developed using Streamlit | CQA Go / NoGo Dashboard | Version 1.1"
 )
