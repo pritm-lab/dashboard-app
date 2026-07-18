@@ -1,68 +1,131 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from io import BytesIO
+import plotly.graph_objects as go
 
 # =====================================================
-# PAGE CONFIG & PREMIUM THEMING
+# PAGE CONFIG
 # =====================================================
 st.set_page_config(
-    page_title="MIS Dashboard",
+    page_title="CQA Go / NoGo Dashboard",
     page_icon="📊",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# Custom CSS to inject card shadows, uniform container styling, and clean backgrounds
+# =====================================================
+# COLOR SYSTEM (one palette, used everywhere)
+# =====================================================
+COLORS = {
+    "go": "#22c55e",        # green
+    "nogo": "#ef4444",      # red
+    "primary": "#2563eb",   # blue - accents / trend lines
+    "muted": "#64748b",     # slate - secondary text
+    "bg_card": "#ffffff",
+    "bg_app": "#f5f7fa",
+    "border": "#e5e7eb",
+}
+GO_NOGO_MAP = {"go": COLORS["go"], "nogo": COLORS["nogo"]}
+SEQ_SCALE = ["#dbeafe", "#93c5fd", "#3b82f6", "#1d4ed8", "#1e3a8a"]  # single blue scale, used for all ranked bars
+
+CHART_TEMPLATE = "plotly_white"
+FONT = dict(family="Segoe UI, Helvetica, Arial, sans-serif", size=13, color="#1f2937")
+
+# =====================================================
+# GLOBAL CSS
+# =====================================================
 st.markdown(
-    """
+    f"""
     <style>
-    .stApp {
-        background-color: #f8f9fa;
-    }
-    div[data-testid="stMetricContainer"] {
-        background-color: #ffffff;
-        border: 1px solid #e9ecef;
-        padding: 15px;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
-    }
-    div[data-testid="stExpander"], .stTabs, div[data-testid="element-container"] iframe {
-        background-color: #ffffff;
+    .stApp {{ background-color: {COLORS['bg_app']}; }}
+
+    /* KPI cards */
+    .kpi-card {{
+        background: {COLORS['bg_card']};
+        border: 1px solid {COLORS['border']};
+        border-radius: 14px;
+        padding: 18px 20px;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+        text-align: left;
+    }}
+    .kpi-label {{
+        font-size: 13px;
+        color: {COLORS['muted']};
+        font-weight: 600;
+        letter-spacing: .02em;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+    }}
+    .kpi-value {{
+        font-size: 30px;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1.1;
+    }}
+    .kpi-sub {{
+        font-size: 12px;
+        color: {COLORS['muted']};
+        margin-top: 4px;
+    }}
+
+    /* Section headers */
+    .section-title {{
+        font-size: 20px;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 4px 0 2px 0;
+    }}
+    .section-sub {{
+        font-size: 13px;
+        color: {COLORS['muted']};
+        margin-bottom: 10px;
+    }}
+
+    div[data-testid="stExpander"], .stTabs {{
+        background-color: {COLORS['bg_card']};
         border-radius: 12px;
-    }
-    h1, h2, h3 {
-        font-weight: 700 !important;
-        color: #2c3e50 !important;
-    }
+    }}
+    h1 {{ font-weight: 800 !important; color: #0f172a !important; }}
+    header[data-testid="stHeader"] {{ background: transparent; }}
+
+    /* Tighter dataframe look */
+    div[data-testid="stDataFrame"] {{ border-radius: 10px; overflow: hidden; }}
     </style>
     """,
     unsafe_allow_html=True
 )
 
-st.title("📊 CQA Go / NoGo Dashboard")
-st.markdown("Interactive dashboard for Go / NoGo Quality Analysis.")
+# =====================================================
+# HEADER
+# =====================================================
+st.markdown(
+    """
+    <div style="padding:6px 0 18px 0;">
+        <div style="font-size:30px;font-weight:800;color:#0f172a;">📊 CQA Go / NoGo Dashboard</div>
+        <div style="font-size:14px;color:#64748b;">Quality audit performance at a glance — filter, drill down, and export.</div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # =====================================================
-# CACHE DATA
+# LOAD DATA
 # =====================================================
 @st.cache_data
 def load_data():
-    df = pd.read_excel(
-        "Primary Analysis 042426.xlsx",
-        sheet_name="Data"
-    )
+    df = pd.read_excel("Primary Analysis 042426.xlsx", sheet_name="Data")
 
     df.columns = (
         df.columns.astype(str)
-        .str.replace("\n","",regex=True)
-        .str.replace("\r","",regex=True)
-        .str.replace("\t","",regex=True)
+        .str.replace("\n", "", regex=True)
+        .str.replace("\r", "", regex=True)
+        .str.replace("\t", "", regex=True)
         .str.strip()
     )
 
     tf_col = None
     for col in df.columns:
-        if "t/f" in col.lower().replace(" ",""):
+        if "t/f" in col.lower().replace(" ", ""):
             tf_col = col
             break
 
@@ -79,16 +142,48 @@ def load_data():
 
 df, tf_col = load_data()
 
-# =====================================================
-# DOWNLOAD FUNCTION
-# =====================================================
+
 def download_csv(dataframe):
     return dataframe.to_csv(index=False).encode("utf-8")
 
+
+def style_fig(fig, height=380):
+    """Apply one consistent look to every chart."""
+    fig.update_layout(
+        template=CHART_TEMPLATE,
+        font=FONT,
+        title_font=dict(size=16, color="#0f172a"),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=10, r=10, t=50, b=10),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title=None),
+        height=height,
+    )
+    fig.update_xaxes(showgrid=False)
+    fig.update_yaxes(showgrid=True, gridcolor="#eef1f5")
+    return fig
+
+
+def make_pivot(dataframe, index_col):
+    pivot = dataframe.pivot_table(
+        index=index_col, columns="NoGo/Go", values="Account_name", aggfunc="count", fill_value=0
+    ).reset_index()
+    pivot.columns.name = None
+    if "go" not in pivot.columns:
+        pivot["go"] = 0
+    if "nogo" not in pivot.columns:
+        pivot["nogo"] = 0
+    pivot.rename(columns={index_col: index_col, "go": "Go", "nogo": "NoGo"}, inplace=True)
+    pivot["Total"] = pivot["Go"] + pivot["NoGo"]
+    pivot["NoGo %"] = ((pivot["NoGo"] / pivot["Total"]) * 100).round(2)
+    return pivot.sort_values("NoGo %", ascending=False)
+
+
 # =====================================================
-# SIDEBAR
+# SIDEBAR — FILTERS
 # =====================================================
-st.sidebar.header("🔍 Filters")
+st.sidebar.markdown("### 🔍 Filters")
+st.sidebar.caption("Narrow down the data shown across the whole dashboard.")
 
 date_filter = st.sidebar.multiselect("Date", sorted(df["Audited Date"].dropna().unique()))
 account_filter = st.sidebar.multiselect("Account", sorted(df["Account_name"].dropna().unique()))
@@ -98,11 +193,10 @@ status_filter = st.sidebar.multiselect("Responsible User Status", sorted(df["Res
 initial_filter = st.sidebar.multiselect("Initial", sorted(df["Initial"].dropna().unique()))
 tf_filter = st.sidebar.multiselect("T/F", sorted(df[tf_col].dropna().unique()), default=["false"])
 
-# =====================================================
-# APPLY FILTERS
-# =====================================================
-filtered_df = df.copy()
+st.sidebar.markdown("---")
+st.sidebar.caption("Built with Streamlit · CQA Go / NoGo Dashboard")
 
+filtered_df = df.copy()
 if date_filter:
     filtered_df = filtered_df[filtered_df["Audited Date"].isin(date_filter)]
 if account_filter:
@@ -124,242 +218,187 @@ if tf_filter:
 total_files = len(filtered_df)
 go_files = len(filtered_df[filtered_df["NoGo/Go"] == "go"])
 nogo_files = len(filtered_df[filtered_df["NoGo/Go"] == "nogo"])
+go_percent = round((go_files / total_files) * 100, 1) if total_files else 0
+nogo_percent = round((nogo_files / total_files) * 100, 1) if total_files else 0
 
-go_percent = round((go_files / total_files) * 100, 2) if total_files else 0
-nogo_percent = round((nogo_files / total_files) * 100, 2) if total_files else 0
+kpis = [
+    ("📄 Total Files", f"{total_files:,}", "All audited records in view"),
+    ("✅ Go", f"{go_files:,}", f"{go_percent}% of total"),
+    ("❌ NoGo", f"{nogo_files:,}", f"{nogo_percent}% of total"),
+    ("👤 Active Users", f"{filtered_df['Responsible_User_Name'].nunique():,}", "Responsible users in view"),
+    ("🩺 Doctors Covered", f"{filtered_df['Doctor'].nunique():,}", "Unique doctors audited"),
+]
 
-st.subheader("📌 KPI Summary")
-k1, k2, k3, k4, k5 = st.columns(5)
-k1.metric("📄 Total Files", total_files)
-k2.metric("✅ Go", go_files)
-k3.metric("🟢 Go %", f"{go_percent}%")
-k4.metric("❌ NoGo", nogo_files)
-k5.metric("🔴 NoGo %", f"{nogo_percent}%")
+st.markdown('<div class="section-title">📌 Key Metrics</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-sub">Snapshot of the currently filtered data.</div>', unsafe_allow_html=True)
+
+kpi_cols = st.columns(len(kpis))
+for col, (label, value, sub) in zip(kpi_cols, kpis):
+    col.markdown(
+        f"""
+        <div class="kpi-card">
+            <div class="kpi-label">{label}</div>
+            <div class="kpi-value">{value}</div>
+            <div class="kpi-sub">{sub}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+st.write("")
+st.download_button("⬇️ Download Filtered Raw Data", download_csv(filtered_df), "Filtered_Data.csv", "text/csv")
 
 # =====================================================
-# DASHBOARD OVERVIEW (2nd Position)
+# GO / NOGO SPLIT + DAILY TREND
 # =====================================================
 st.markdown("---")
-st.subheader("📋 Dashboard Overview")
-s1, s2, s3, s4 = st.columns(4)
-s1.metric("👤 Unique Users", filtered_df["Responsible_User_Name"].nunique())
-s2.metric("🏥 Unique Initials", filtered_df["Initial"].nunique())
-s3.metric("🩺 Unique Doctors", filtered_df["Doctor"].nunique())
-s4.metric("🏢 Unique Accounts", filtered_df["Account_name"].nunique())
+st.markdown('<div class="section-title">📈 Overview</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-sub">Overall pass rate and how volume moves day to day.</div>', unsafe_allow_html=True)
 
-st.download_button(
-    "⬇ Download Filtered Raw Data",
-    download_csv(filtered_df),
-    "Filtered_Data.csv",
-    "text/csv"
-)
-
-# =====================================================
-# GO / NOGO & DAILY TREND CHARTS
-# =====================================================
-st.markdown("---")
-chart_col1, chart_col2 = st.columns(2)
+chart_col1, chart_col2 = st.columns([1, 1.4], gap="large")
 
 with chart_col1:
-    fig = px.pie(
-        names=["Go", "NoGo"],
+    fig = go.Figure(data=[go.Pie(
+        labels=["Go", "NoGo"],
         values=[go_files, nogo_files],
-        hole=.55,
+        hole=0.65,
+        marker=dict(colors=[COLORS["go"], COLORS["nogo"]]),
+        textinfo="percent",
+        textfont=dict(size=14, color="white"),
+    )])
+    fig.update_layout(
         title="Go vs NoGo Distribution",
-        color_discrete_sequence=["#2ecc71", "#e74c3c"],
-        template="plotly_white"
+        annotations=[dict(text=f"{go_percent}%<br><span style='font-size:11px;color:#64748b'>Go rate</span>",
+                           x=0.5, y=0.5, font_size=20, showarrow=False)]
     )
-    fig.update_layout(paper_bgcolor='rgba(255,255,255,1)', plot_bgcolor='rgba(255,255,255,1)')
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(style_fig(fig, height=360), use_container_width=True)
 
 with chart_col2:
-    if "Audited Date" in filtered_df.columns:
-        trend = filtered_df.groupby("Audited Date").size().reset_index(name="Files")
-        trend = trend.sort_values("Audited Date")
-        
-        fig = px.line(
-            trend,
-            x="Audited Date",
-            y="Files",
-            markers=True,
-            text="Files",
-            title="Daily Audit Trend",
-            template="plotly_white"
+    if "Audited Date" in filtered_df.columns and len(filtered_df):
+        trend = filtered_df.groupby("Audited Date").size().reset_index(name="Files").sort_values("Audited Date")
+        fig = px.area(
+            trend, x="Audited Date", y="Files", markers=True, title="Daily Audit Volume"
         )
-        fig.update_traces(
-            line_color="#3498db", 
-            marker=dict(size=10, color="#1abc9c"),
-            textposition="top center"
-        )
-        # Force the X-Axis to print every single unique daily date explicitly
-        fig.update_xaxes(
-            type='category',
-            tickangle=45,
-            title_text="Audited Date"
-        )
-        fig.update_layout(paper_bgcolor='rgba(255,255,255,1)', plot_bgcolor='rgba(255,255,255,1)')
-        st.plotly_chart(fig, use_container_width=True)
+        fig.update_traces(line_color=COLORS["primary"], fillcolor="rgba(37,99,235,0.12)",
+                           marker=dict(size=7, color=COLORS["primary"]))
+        fig.update_xaxes(type="category", tickangle=45, title_text="")
+        st.plotly_chart(style_fig(fig, height=360), use_container_width=True)
 
 # =====================================================
-# USER / INITIAL / DOCTOR TABLES
+# BREAKDOWNS — USER / INITIAL / DOCTOR
 # =====================================================
 st.markdown("---")
+st.markdown('<div class="section-title">🔎 Breakdowns</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-sub">Drill into performance by user, initial, or doctor.</div>', unsafe_allow_html=True)
+
+user_pivot = make_pivot(filtered_df, "Responsible_User_Name").rename(columns={"Responsible_User_Name": "User"})
+initial_pivot = make_pivot(filtered_df, "Initial")
+doctor_pivot = make_pivot(filtered_df, "Doctor")
+
 tab1, tab2, tab3 = st.tabs(["👤 User Wise", "🏥 Initial Wise", "🩺 Doctor Wise"])
 
-# --- User Wise ---
 with tab1:
-    user_pivot = filtered_df.pivot_table(
-        index="Responsible_User_Name", columns="NoGo/Go", values="Account_name", aggfunc="count", fill_value=0
-    ).reset_index()
-    user_pivot.columns.name = None
-    if "go" not in user_pivot.columns: user_pivot["go"] = 0
-    if "nogo" not in user_pivot.columns: user_pivot["nogo"] = 0
-    user_pivot.rename(columns={"Responsible_User_Name": "User", "go": "Go", "nogo": "NoGo"}, inplace=True)
-    user_pivot["Total"] = user_pivot["Go"] + user_pivot["NoGo"]
-    user_pivot["NoGo %"] = ((user_pivot["NoGo"] / user_pivot["Total"]) * 100).round(2)
-    user_pivot = user_pivot.sort_values("NoGo %", ascending=False)
-
-    c1, c2 = st.columns([3, 2])
+    c1, c2 = st.columns([3, 2], gap="medium")
     with c1:
         st.dataframe(user_pivot, hide_index=True, use_container_width=True)
     with c2:
-        fig = px.bar(
-            user_pivot.head(10), x="User", y="NoGo", color="NoGo", text="NoGo",
-            title="Top 10 NoGo Users", template="plotly_white", color_continuous_scale="Reds"
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        fig = px.bar(user_pivot.sort_values("NoGo", ascending=False).head(10),
+                     x="User", y="NoGo", color="NoGo", text="NoGo",
+                     title="Top 10 Users by NoGo Count", color_continuous_scale=SEQ_SCALE)
+        fig.update_traces(textposition="outside")
+        st.plotly_chart(style_fig(fig), use_container_width=True)
 
-# --- Initial Wise ---
 with tab2:
-    initial_pivot = filtered_df.pivot_table(
-        index="Initial", columns="NoGo/Go", values="Account_name", aggfunc="count", fill_value=0
-    ).reset_index()
-    initial_pivot.columns.name = None
-    if "go" not in initial_pivot.columns: initial_pivot["go"] = 0
-    if "nogo" not in initial_pivot.columns: initial_pivot["nogo"] = 0
-    initial_pivot.rename(columns={"go": "Go", "nogo": "NoGo"}, inplace=True)
-    initial_pivot["Total"] = initial_pivot["Go"] + initial_pivot["NoGo"]
-    initial_pivot["NoGo %"] = ((initial_pivot["NoGo"] / initial_pivot["Total"]) * 100).round(2)
-    initial_pivot = initial_pivot.sort_values("NoGo %", ascending=False)
-
-    c1, c2 = st.columns([3, 2])
+    c1, c2 = st.columns([3, 2], gap="medium")
     with c1:
         st.dataframe(initial_pivot, hide_index=True, use_container_width=True)
     with c2:
-        fig = px.bar(
-            initial_pivot, x="Initial", y="NoGo %", color="NoGo %", text="NoGo %",
-            title="Initial Wise NoGo %", template="plotly_white", color_continuous_scale="Purples"
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        fig = px.bar(initial_pivot, x="Initial", y="NoGo %", color="NoGo %", text="NoGo %",
+                     title="NoGo % by Initial", color_continuous_scale=SEQ_SCALE)
+        fig.update_traces(textposition="outside", texttemplate="%{text}%")
+        st.plotly_chart(style_fig(fig), use_container_width=True)
 
-# --- Doctor Wise ---
 with tab3:
-    doctor_pivot = filtered_df.pivot_table(
-        index="Doctor", columns="NoGo/Go", values="Account_name", aggfunc="count", fill_value=0
-    ).reset_index()
-    doctor_pivot.columns.name = None
-    if "go" not in doctor_pivot.columns: doctor_pivot["go"] = 0
-    if "nogo" not in doctor_pivot.columns: doctor_pivot["nogo"] = 0
-    doctor_pivot.rename(columns={"go": "Go", "nogo": "NoGo"}, inplace=True)
-    doctor_pivot["Total"] = doctor_pivot["Go"] + doctor_pivot["NoGo"]
-    doctor_pivot["NoGo %"] = ((doctor_pivot["NoGo"] / doctor_pivot["Total"]) * 100).round(2)
-    doctor_pivot = doctor_pivot.sort_values("NoGo %", ascending=False)
-
-    c1, c2 = st.columns([3, 2])
+    c1, c2 = st.columns([3, 2], gap="medium")
     with c1:
         st.dataframe(doctor_pivot, hide_index=True, use_container_width=True)
     with c2:
-        fig = px.bar(
-            doctor_pivot.head(10), x="Doctor", y="NoGo", color="NoGo", text="NoGo",
-            title="Top 10 Doctors (NoGo)", template="plotly_white", color_continuous_scale="Oranges"
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        fig = px.bar(doctor_pivot.sort_values("NoGo", ascending=False).head(10),
+                     x="Doctor", y="NoGo", color="NoGo", text="NoGo",
+                     title="Top 10 Doctors by NoGo Count", color_continuous_scale=SEQ_SCALE)
+        fig.update_traces(textposition="outside")
+        st.plotly_chart(style_fig(fig), use_container_width=True)
 
 # =====================================================
 # PERFORMANCE SUMMARY
 # =====================================================
 st.markdown("---")
-st.header("🏆 Performance Summary")
-left, right = st.columns(2)
+st.markdown('<div class="section-title">🏆 Performance Summary</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-sub">Best and worst performing users, side by side.</div>', unsafe_allow_html=True)
+
+left, right = st.columns(2, gap="large")
 
 with left:
-    st.subheader("🥇 Top 10 Best Performers")
+    st.markdown("**🥇 Top 10 Best Performers**")
     if len(user_pivot):
         best_users = user_pivot[user_pivot["Total"] > 0].sort_values(["Go", "NoGo %"], ascending=[False, True]).head(10)
         st.dataframe(best_users, hide_index=True, use_container_width=True)
-        fig = px.bar(
-            best_users, x="User", y="Go", color="Go", text="Go",
-            title="Top 10 Users by Go Files", template="plotly_white", color_continuous_scale="Viridis"
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        fig = px.bar(best_users, x="User", y="Go", text="Go", title="Top 10 Users by Go Files")
+        fig.update_traces(marker_color=COLORS["go"], textposition="outside")
+        st.plotly_chart(style_fig(fig), use_container_width=True)
 
 with right:
-    st.subheader("🚨 Top 10 Worst Performers")
+    st.markdown("**🚨 Top 10 Needs Attention**")
     if len(user_pivot):
         worst_users = user_pivot[user_pivot["Total"] > 0].sort_values(["NoGo", "NoGo %"], ascending=[False, False]).head(10)
         st.dataframe(worst_users, hide_index=True, use_container_width=True)
-        fig = px.bar(
-            worst_users, x="User", y="NoGo", color="NoGo", text="NoGo",
-            title="Top 10 Users by NoGo Files", template="plotly_white", color_continuous_scale="Reds"
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        fig = px.bar(worst_users, x="User", y="NoGo", text="NoGo", title="Top 10 Users by NoGo Files")
+        fig.update_traces(marker_color=COLORS["nogo"], textposition="outside")
+        st.plotly_chart(style_fig(fig), use_container_width=True)
 
 # =====================================================
-# MONTHLY TREND WITH DIRECT INTERNAL LABELS
+# MONTHLY TREND
 # =====================================================
 st.markdown("---")
-st.header("📈 Monthly Trend")
+st.markdown('<div class="section-title">📅 Monthly Trend</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-sub">Go vs NoGo volume across months.</div>', unsafe_allow_html=True)
 
-if "Audited Date" in filtered_df.columns:
+if "Audited Date" in filtered_df.columns and len(filtered_df):
     trend_df = filtered_df.copy()
     trend_df["Month"] = pd.to_datetime(trend_df["Audited Date"]).dt.to_period("M").astype(str)
     monthly = trend_df.groupby(["Month", "NoGo/Go"]).size().reset_index(name="Files")
 
     fig = px.bar(
-        monthly,
-        x="Month",
-        y="Files",
-        color="NoGo/Go",
-        barmode="group",
-        text="Files",  # Prints numbers directly inside/above bars
-        title="Monthly Go / NoGo Trend",
-        template="plotly_white",
-        color_discrete_map={"go": "#2ecc71", "nogo": "#e74c3c"}
+        monthly, x="Month", y="Files", color="NoGo/Go", barmode="group", text="Files",
+        title="Monthly Go / NoGo Trend", color_discrete_map=GO_NOGO_MAP
     )
     fig.update_traces(textposition="outside")
-    fig.update_xaxes(type='category')  # Ensures neat categorical spacing for timeline labels
-    fig.update_layout(paper_bgcolor='rgba(255,255,255,1)', plot_bgcolor='rgba(255,255,255,1)')
-    st.plotly_chart(fig, use_container_width=True)
+    fig.update_xaxes(type="category", title_text="")
+    st.plotly_chart(style_fig(fig, height=420), use_container_width=True)
 
 # =====================================================
-# USER GO / NOGO WITH STACKED INTERNAL LABELS
+# USER GO / NOGO STACKED BREAKDOWN
 # =====================================================
 st.markdown("---")
-st.header("📊 Go vs NoGo By User")
+st.markdown('<div class="section-title">📊 Go vs NoGo by User</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-sub">Full breakdown of every user in the current filter.</div>', unsafe_allow_html=True)
 
 stack_df = user_pivot.copy()
 chart = stack_df.melt(id_vars="User", value_vars=["Go", "NoGo"], var_name="Status", value_name="Files")
 
 fig = px.bar(
-    chart,
-    x="User",
-    y="Files",
-    color="Status",
-    barmode="stack",
-    text="Files",  # Enables values on individual blocks inside the stack
-    title="User Wise Go / NoGo Breakdown",
-    template="plotly_white",
-    color_discrete_map={"Go": "#2ecc71", "NoGo": "#e74c3c"}
+    chart, x="User", y="Files", color="Status", barmode="stack", text="Files",
+    title="User Wise Go / NoGo Breakdown", color_discrete_map=GO_NOGO_MAP
 )
-fig.update_traces(textposition="inside")  # Standardizes numbers beautifully inside stacked bars
-fig.update_layout(paper_bgcolor='rgba(255,255,255,1)', plot_bgcolor='rgba(255,255,255,1)')
-st.plotly_chart(fig, use_container_width=True)
+fig.update_traces(textposition="inside")
+fig.update_xaxes(title_text="")
+st.plotly_chart(style_fig(fig, height=440), use_container_width=True)
 
 # =====================================================
-# DOWNLOAD ALL PIVOTS
+# DOWNLOADS
 # =====================================================
 st.markdown("---")
-st.subheader("⬇ Pivot Table Downloads")
+st.markdown('<div class="section-title">⬇️ Export Pivot Tables</div>', unsafe_allow_html=True)
 d1, d2, d3 = st.columns(3)
 with d1:
     st.download_button("Download User Pivot", user_pivot.to_csv(index=False), "User_Pivot.csv", "text/csv")
@@ -372,4 +411,4 @@ with d3:
 # FOOTER
 # =====================================================
 st.markdown("---")
-st.caption("Developed using Streamlit | CQA Go / NoGo Dashboard | Version 1.2")
+st.caption("Developed using Streamlit · CQA Go / NoGo Dashboard · Version 2.0")
