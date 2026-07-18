@@ -17,19 +17,20 @@ st.set_page_config(
 # COLOR SYSTEM (one palette, used everywhere)
 # =====================================================
 COLORS = {
-    "go": "#22c55e",        # green
-    "nogo": "#ef4444",      # red
-    "primary": "#2563eb",   # blue - accents / trend lines
-    "muted": "#64748b",     # slate - secondary text
+    "go": "#22c55e",
+    "nogo": "#ef4444",
+    "primary": "#2563eb",
+    "muted": "#64748b",
+    "text": "#1e293b",
     "bg_card": "#ffffff",
-    "bg_app": "#f5f7fa",
-    "border": "#e5e7eb",
+    "bg_app": "#eef2f7",
+    "border": "#e2e8f0",
 }
 GO_NOGO_MAP = {"go": COLORS["go"], "nogo": COLORS["nogo"]}
-SEQ_SCALE = ["#dbeafe", "#93c5fd", "#3b82f6", "#1d4ed8", "#1e3a8a"]  # single blue scale, used for all ranked bars
+SEQ_SCALE = ["#dbeafe", "#93c5fd", "#3b82f6", "#1d4ed8", "#1e3a8a"]
 
 CHART_TEMPLATE = "plotly_white"
-FONT = dict(family="Segoe UI, Helvetica, Arial, sans-serif", size=13, color="#1f2937")
+FONT = dict(family="Segoe UI, Helvetica, Arial, sans-serif", size=14, color=COLORS["text"])
 
 # =====================================================
 # GLOBAL CSS
@@ -39,13 +40,12 @@ st.markdown(
     <style>
     .stApp {{ background-color: {COLORS['bg_app']}; }}
 
-    /* KPI cards */
     .kpi-card {{
         background: {COLORS['bg_card']};
         border: 1px solid {COLORS['border']};
         border-radius: 14px;
         padding: 18px 20px;
-        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
         text-align: left;
     }}
     .kpi-label {{
@@ -68,17 +68,16 @@ st.markdown(
         margin-top: 4px;
     }}
 
-    /* Section headers */
     .section-title {{
-        font-size: 20px;
+        font-size: 21px;
         font-weight: 800;
         color: #0f172a;
         margin: 4px 0 2px 0;
     }}
     .section-sub {{
-        font-size: 13px;
+        font-size: 13.5px;
         color: {COLORS['muted']};
-        margin-bottom: 10px;
+        margin-bottom: 12px;
     }}
 
     div[data-testid="stExpander"], .stTabs {{
@@ -88,8 +87,19 @@ st.markdown(
     h1 {{ font-weight: 800 !important; color: #0f172a !important; }}
     header[data-testid="stHeader"] {{ background: transparent; }}
 
-    /* Tighter dataframe look */
-    div[data-testid="stDataFrame"] {{ border-radius: 10px; overflow: hidden; }}
+    div[data-testid="stPlotlyChart"] {{
+        background: {COLORS['bg_card']};
+        border: 1px solid {COLORS['border']};
+        border-radius: 14px;
+        padding: 12px 14px 4px 14px;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+    }}
+
+    div[data-testid="stDataFrame"] {{
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid {COLORS['border']};
+    }}
     </style>
     """,
     unsafe_allow_html=True
@@ -147,21 +157,36 @@ def download_csv(dataframe):
     return dataframe.to_csv(index=False).encode("utf-8")
 
 
-def style_fig(fig, height=380):
-    """Apply one consistent look to every chart."""
+def style_fig(fig, height=380, xaxis_title=None, yaxis_title=None):
     fig.update_layout(
         template=CHART_TEMPLATE,
         font=FONT,
         title_font=dict(size=16, color="#0f172a"),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=10, r=10, t=50, b=10),
+        paper_bgcolor="#ffffff",
+        plot_bgcolor="#ffffff",
+        margin=dict(l=10, r=10, t=55, b=10),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title=None),
         height=height,
     )
-    fig.update_xaxes(showgrid=False)
-    fig.update_yaxes(showgrid=True, gridcolor="#eef1f5")
+    fig.update_xaxes(
+        showgrid=False,
+        tickfont=dict(size=12, color=COLORS["text"]),
+        title_font=dict(size=13, color=COLORS["text"]),
+        title_text=xaxis_title,
+        showline=True, linecolor=COLORS["border"],
+    )
+    fig.update_yaxes(
+        showgrid=True, gridcolor="#eef1f5",
+        tickfont=dict(size=12, color=COLORS["text"]),
+        title_font=dict(size=13, color=COLORS["text"]),
+        title_text=yaxis_title,
+        showline=True, linecolor=COLORS["border"],
+    )
     return fig
+
+
+def pct_config(*cols):
+    return {c: st.column_config.NumberColumn(format="%.2f") for c in cols}
 
 
 def make_pivot(dataframe, index_col):
@@ -218,13 +243,13 @@ if tf_filter:
 total_files = len(filtered_df)
 go_files = len(filtered_df[filtered_df["NoGo/Go"] == "go"])
 nogo_files = len(filtered_df[filtered_df["NoGo/Go"] == "nogo"])
-go_percent = round((go_files / total_files) * 100, 1) if total_files else 0
-nogo_percent = round((nogo_files / total_files) * 100, 1) if total_files else 0
+go_percent = round((go_files / total_files) * 100, 2) if total_files else 0.0
+nogo_percent = round((nogo_files / total_files) * 100, 2) if total_files else 0.0
 
 kpis = [
     ("📄 Total Files", f"{total_files:,}", "All audited records in view"),
-    ("✅ Go", f"{go_files:,}", f"{go_percent}% of total"),
-    ("❌ NoGo", f"{nogo_files:,}", f"{nogo_percent}% of total"),
+    ("✅ Go", f"{go_files:,}", f"{go_percent:.2f}% of total"),
+    ("❌ NoGo", f"{nogo_files:,}", f"{nogo_percent:.2f}% of total"),
     ("👤 Active Users", f"{filtered_df['Responsible_User_Name'].nunique():,}", "Responsible users in view"),
     ("🩺 Doctors Covered", f"{filtered_df['Doctor'].nunique():,}", "Unique doctors audited"),
 ]
@@ -264,11 +289,12 @@ with chart_col1:
         hole=0.65,
         marker=dict(colors=[COLORS["go"], COLORS["nogo"]]),
         textinfo="percent",
+        texttemplate="%{percent:.2%}",
         textfont=dict(size=14, color="white"),
     )])
     fig.update_layout(
         title="Go vs NoGo Distribution",
-        annotations=[dict(text=f"{go_percent}%<br><span style='font-size:11px;color:#64748b'>Go rate</span>",
+        annotations=[dict(text=f"{go_percent:.2f}%<br><span style='font-size:11px;color:#64748b'>Go rate</span>",
                            x=0.5, y=0.5, font_size=20, showarrow=False)]
     )
     st.plotly_chart(style_fig(fig, height=360), use_container_width=True)
@@ -281,8 +307,11 @@ with chart_col2:
         )
         fig.update_traces(line_color=COLORS["primary"], fillcolor="rgba(37,99,235,0.12)",
                            marker=dict(size=7, color=COLORS["primary"]))
-        fig.update_xaxes(type="category", tickangle=45, title_text="")
-        st.plotly_chart(style_fig(fig, height=360), use_container_width=True)
+        fig.update_xaxes(type="category", tickangle=45)
+        st.plotly_chart(
+            style_fig(fig, height=360, xaxis_title="Audited Date", yaxis_title="Number of Files"),
+            use_container_width=True
+        )
 
 # =====================================================
 # BREAKDOWNS — USER / INITIAL / DOCTOR
@@ -300,34 +329,34 @@ tab1, tab2, tab3 = st.tabs(["👤 User Wise", "🏥 Initial Wise", "🩺 Doctor 
 with tab1:
     c1, c2 = st.columns([3, 2], gap="medium")
     with c1:
-        st.dataframe(user_pivot, hide_index=True, use_container_width=True)
+        st.dataframe(user_pivot, hide_index=True, use_container_width=True, column_config=pct_config("NoGo %"))
     with c2:
         fig = px.bar(user_pivot.sort_values("NoGo", ascending=False).head(10),
                      x="User", y="NoGo", color="NoGo", text="NoGo",
                      title="Top 10 Users by NoGo Count", color_continuous_scale=SEQ_SCALE)
-        fig.update_traces(textposition="outside")
-        st.plotly_chart(style_fig(fig), use_container_width=True)
+        fig.update_traces(textposition="outside", texttemplate="%{text:,}")
+        st.plotly_chart(style_fig(fig, xaxis_title="User", yaxis_title="NoGo File Count"), use_container_width=True)
 
 with tab2:
     c1, c2 = st.columns([3, 2], gap="medium")
     with c1:
-        st.dataframe(initial_pivot, hide_index=True, use_container_width=True)
+        st.dataframe(initial_pivot, hide_index=True, use_container_width=True, column_config=pct_config("NoGo %"))
     with c2:
         fig = px.bar(initial_pivot, x="Initial", y="NoGo %", color="NoGo %", text="NoGo %",
                      title="NoGo % by Initial", color_continuous_scale=SEQ_SCALE)
-        fig.update_traces(textposition="outside", texttemplate="%{text}%")
-        st.plotly_chart(style_fig(fig), use_container_width=True)
+        fig.update_traces(textposition="outside", texttemplate="%{text:.2f}%")
+        st.plotly_chart(style_fig(fig, xaxis_title="Initial", yaxis_title="NoGo %"), use_container_width=True)
 
 with tab3:
     c1, c2 = st.columns([3, 2], gap="medium")
     with c1:
-        st.dataframe(doctor_pivot, hide_index=True, use_container_width=True)
+        st.dataframe(doctor_pivot, hide_index=True, use_container_width=True, column_config=pct_config("NoGo %"))
     with c2:
         fig = px.bar(doctor_pivot.sort_values("NoGo", ascending=False).head(10),
                      x="Doctor", y="NoGo", color="NoGo", text="NoGo",
                      title="Top 10 Doctors by NoGo Count", color_continuous_scale=SEQ_SCALE)
-        fig.update_traces(textposition="outside")
-        st.plotly_chart(style_fig(fig), use_container_width=True)
+        fig.update_traces(textposition="outside", texttemplate="%{text:,}")
+        st.plotly_chart(style_fig(fig, xaxis_title="Doctor", yaxis_title="NoGo File Count"), use_container_width=True)
 
 # =====================================================
 # HOSPITAL / PHYSICIAN DEEP-DIVE
@@ -338,7 +367,6 @@ st.markdown('<div class="section-sub">Go/NoGo and quality performance sliced by 
 
 
 def make_quality_pivot(dataframe, index_col):
-    """Same as make_pivot, plus average Accuracy / Overall Score where those columns exist."""
     if index_col not in dataframe.columns:
         return pd.DataFrame()
     base = make_pivot(dataframe, index_col)
@@ -359,16 +387,16 @@ with hosp_tab:
         hosp_pivot = make_quality_pivot(filtered_df, "Subhospital")
         c1, c2 = st.columns([3, 2], gap="medium")
         with c1:
-            st.dataframe(hosp_pivot, hide_index=True, use_container_width=True)
+            st.dataframe(hosp_pivot, hide_index=True, use_container_width=True,
+                         column_config=pct_config("NoGo %", "Avg Accuracy", "Avg Overall Score"))
         with c2:
             fig = px.bar(
                 hosp_pivot.sort_values("NoGo %", ascending=False).head(10),
                 x="Subhospital", y="NoGo %", text="NoGo %", title="Top 10 Subhospitals by NoGo %",
                 color="NoGo %", color_continuous_scale=SEQ_SCALE
             )
-            fig.update_traces(textposition="outside", texttemplate="%{text}%")
-            fig.update_xaxes(title_text="")
-            st.plotly_chart(style_fig(fig), use_container_width=True)
+            fig.update_traces(textposition="outside", texttemplate="%{text:.2f}%")
+            st.plotly_chart(style_fig(fig, xaxis_title="Subhospital", yaxis_title="NoGo %"), use_container_width=True)
     else:
         st.info("Subhospital column not found in this data.")
 
@@ -376,32 +404,32 @@ with doc_tab:
     doc_quality_pivot = make_quality_pivot(filtered_df, "Doctor")
     c1, c2 = st.columns([3, 2], gap="medium")
     with c1:
-        st.dataframe(doc_quality_pivot, hide_index=True, use_container_width=True)
+        st.dataframe(doc_quality_pivot, hide_index=True, use_container_width=True,
+                     column_config=pct_config("NoGo %", "Avg Accuracy", "Avg Overall Score"))
     with c2:
         fig = px.bar(
             doc_quality_pivot.sort_values("NoGo %", ascending=False).head(10),
             x="Doctor", y="NoGo %", text="NoGo %", title="Top 10 Physicians by NoGo %",
             color="NoGo %", color_continuous_scale=SEQ_SCALE
         )
-        fig.update_traces(textposition="outside", texttemplate="%{text}%")
-        fig.update_xaxes(title_text="")
-        st.plotly_chart(style_fig(fig), use_container_width=True)
+        fig.update_traces(textposition="outside", texttemplate="%{text:.2f}%")
+        st.plotly_chart(style_fig(fig, xaxis_title="Physician", yaxis_title="NoGo %"), use_container_width=True)
 
 with loc_tab:
     if "Location" in filtered_df.columns:
         loc_pivot = make_quality_pivot(filtered_df, "Location")
         c1, c2 = st.columns([3, 2], gap="medium")
         with c1:
-            st.dataframe(loc_pivot, hide_index=True, use_container_width=True)
+            st.dataframe(loc_pivot, hide_index=True, use_container_width=True,
+                         column_config=pct_config("NoGo %", "Avg Accuracy", "Avg Overall Score"))
         with c2:
             fig = px.bar(
                 loc_pivot.sort_values("Total", ascending=False).head(10),
                 x="Location", y="Total", text="Total", title="Top 10 Locations by Volume",
                 color="Total", color_continuous_scale=SEQ_SCALE
             )
-            fig.update_traces(textposition="outside")
-            fig.update_xaxes(title_text="")
-            st.plotly_chart(style_fig(fig), use_container_width=True)
+            fig.update_traces(textposition="outside", texttemplate="%{text:,}")
+            st.plotly_chart(style_fig(fig, xaxis_title="Location", yaxis_title="Total Files"), use_container_width=True)
     else:
         st.info("Location column not found in this data.")
 
@@ -410,7 +438,7 @@ with loc_tab:
 # =====================================================
 st.markdown("---")
 st.markdown('<div class="section-title">👷 Auditor Workload &amp; Productivity</div>', unsafe_allow_html=True)
-st.markdown('<div class="section-sub">Who is auditing how much, how fast, and status-wise split (e.g. MT / QA / BB).</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-sub">Workload snapshot and status-wise split (e.g. MT / QA / BB).</div>', unsafe_allow_html=True)
 
 if "Auditor_name" in filtered_df.columns and len(filtered_df):
     auditor_df = filtered_df.copy()
@@ -420,19 +448,19 @@ if "Auditor_name" in filtered_df.columns and len(filtered_df):
     auditor_summary = auditor_df.groupby("Auditor_name").agg(
         Files_Audited=("Auditor_name", "count"),
         Avg_Time_Taken_Min=("_time_min", "mean"),
-        Total_Screen_Time_Hrs=("_screen_sec", lambda s: round(s.sum() / 3600, 1) if s.notna().any() else 0)
+        Total_Screen_Time_Hrs=("_screen_sec", lambda s: round(s.sum() / 3600, 2) if s.notna().any() else 0)
     ).reset_index()
-    auditor_summary["Avg_Time_Taken_Min"] = auditor_summary["Avg_Time_Taken_Min"].round(1)
+    auditor_summary["Avg_Time_Taken_Min"] = auditor_summary["Avg_Time_Taken_Min"].round(2)
     auditor_summary = auditor_summary.sort_values("Files_Audited", ascending=False)
 
-    avg_time_overall = round(auditor_df["_time_min"].mean(), 1) if auditor_df["_time_min"].notna().any() else "—"
-    total_screen_hrs = round(auditor_df["_screen_sec"].sum() / 3600, 1) if auditor_df["_screen_sec"].notna().any() else "—"
+    avg_time_overall = round(auditor_df["_time_min"].mean(), 2) if auditor_df["_time_min"].notna().any() else None
+    total_screen_hrs = round(auditor_df["_screen_sec"].sum() / 3600, 2) if auditor_df["_screen_sec"].notna().any() else None
 
     a1, a2, a3 = st.columns(3)
     for col, label, value in [
         (a1, "👷 Active Auditors", f"{auditor_df['Auditor_name'].nunique():,}"),
-        (a2, "⏱ Avg Time / File (min)", avg_time_overall),
-        (a3, "🖥 Total Screen Time (hrs)", total_screen_hrs),
+        (a2, "⏱ Avg Time / File (min)", f"{avg_time_overall:.2f}" if avg_time_overall is not None else "—"),
+        (a3, "🖥 Total Screen Time (hrs)", f"{total_screen_hrs:.2f}" if total_screen_hrs is not None else "—"),
     ]:
         col.markdown(
             f'<div class="kpi-card"><div class="kpi-label">{label}</div><div class="kpi-value">{value}</div></div>',
@@ -440,48 +468,19 @@ if "Auditor_name" in filtered_df.columns and len(filtered_df):
         )
 
     st.write("")
-    c1, c2 = st.columns(2, gap="large")
-    with c1:
-        fig = px.bar(
-            auditor_summary.head(15), x="Auditor_name", y="Files_Audited", text="Files_Audited",
-            title="Files Audited per Auditor (Top 15)", color="Files_Audited", color_continuous_scale=SEQ_SCALE
-        )
-        fig.update_traces(textposition="outside")
-        fig.update_xaxes(title_text="")
-        st.plotly_chart(style_fig(fig), use_container_width=True)
-    with c2:
-        fig = px.bar(
-            auditor_summary.sort_values("Avg_Time_Taken_Min", ascending=False).head(15),
-            x="Auditor_name", y="Avg_Time_Taken_Min", text="Avg_Time_Taken_Min",
-            title="Avg Time Taken per File — Top 15 Slowest", color="Avg_Time_Taken_Min",
-            color_continuous_scale=SEQ_SCALE
-        )
-        fig.update_traces(textposition="outside")
-        fig.update_xaxes(title_text="")
-        st.plotly_chart(style_fig(fig), use_container_width=True)
-
-    st.dataframe(auditor_summary, hide_index=True, use_container_width=True)
-
-    if "Missed_Achieved" in filtered_df.columns:
-        st.markdown("**🎯 Milestone: Achieved vs Missed (by Auditor)**")
-        milestone = filtered_df.groupby(["Auditor_name", "Missed_Achieved"]).size().reset_index(name="Files")
-        fig = px.bar(
-            milestone, x="Auditor_name", y="Files", color="Missed_Achieved", barmode="stack",
-            text="Files", title="Milestone Achieved vs Missed by Auditor"
-        )
-        fig.update_traces(textposition="inside")
-        fig.update_xaxes(title_text="")
-        st.plotly_chart(style_fig(fig, height=420), use_container_width=True)
+    st.dataframe(
+        auditor_summary, hide_index=True, use_container_width=True,
+        column_config=pct_config("Avg_Time_Taken_Min", "Total_Screen_Time_Hrs")
+    )
 else:
     st.info("Auditor_name column not found in this data.")
 
-# --- Responsible User Status breakdown (e.g. MT / QA / BB) ---
 if "Responsible_User_Status" in filtered_df.columns and len(filtered_df):
     st.markdown("**🏷️ Volume &amp; Quality by Responsible User Status (e.g. MT / QA / BB)**")
     status_pivot = make_pivot(filtered_df, "Responsible_User_Status")
     c1, c2 = st.columns([2, 3], gap="medium")
     with c1:
-        st.dataframe(status_pivot, hide_index=True, use_container_width=True)
+        st.dataframe(status_pivot, hide_index=True, use_container_width=True, column_config=pct_config("NoGo %"))
     with c2:
         status_chart = status_pivot.melt(
             id_vars="Responsible_User_Status", value_vars=["Go", "NoGo"], var_name="Status", value_name="Files"
@@ -490,9 +489,11 @@ if "Responsible_User_Status" in filtered_df.columns and len(filtered_df):
             status_chart, x="Responsible_User_Status", y="Files", color="Status", barmode="stack",
             text="Files", title="Go / NoGo by Responsible User Status", color_discrete_map=GO_NOGO_MAP
         )
-        fig.update_traces(textposition="inside")
-        fig.update_xaxes(title_text="")
-        st.plotly_chart(style_fig(fig), use_container_width=True)
+        fig.update_traces(textposition="inside", texttemplate="%{text:,}")
+        st.plotly_chart(
+            style_fig(fig, xaxis_title="Responsible User Status", yaxis_title="Number of Files"),
+            use_container_width=True
+        )
 
 # =====================================================
 # PERFORMANCE SUMMARY
@@ -507,19 +508,19 @@ with left:
     st.markdown("**🥇 Top 10 Best Performers**")
     if len(user_pivot):
         best_users = user_pivot[user_pivot["Total"] > 0].sort_values(["Go", "NoGo %"], ascending=[False, True]).head(10)
-        st.dataframe(best_users, hide_index=True, use_container_width=True)
+        st.dataframe(best_users, hide_index=True, use_container_width=True, column_config=pct_config("NoGo %"))
         fig = px.bar(best_users, x="User", y="Go", text="Go", title="Top 10 Users by Go Files")
-        fig.update_traces(marker_color=COLORS["go"], textposition="outside")
-        st.plotly_chart(style_fig(fig), use_container_width=True)
+        fig.update_traces(marker_color=COLORS["go"], textposition="outside", texttemplate="%{text:,}")
+        st.plotly_chart(style_fig(fig, xaxis_title="User", yaxis_title="Go File Count"), use_container_width=True)
 
 with right:
     st.markdown("**🚨 Top 10 Needs Attention**")
     if len(user_pivot):
         worst_users = user_pivot[user_pivot["Total"] > 0].sort_values(["NoGo", "NoGo %"], ascending=[False, False]).head(10)
-        st.dataframe(worst_users, hide_index=True, use_container_width=True)
+        st.dataframe(worst_users, hide_index=True, use_container_width=True, column_config=pct_config("NoGo %"))
         fig = px.bar(worst_users, x="User", y="NoGo", text="NoGo", title="Top 10 Users by NoGo Files")
-        fig.update_traces(marker_color=COLORS["nogo"], textposition="outside")
-        st.plotly_chart(style_fig(fig), use_container_width=True)
+        fig.update_traces(marker_color=COLORS["nogo"], textposition="outside", texttemplate="%{text:,}")
+        st.plotly_chart(style_fig(fig, xaxis_title="User", yaxis_title="NoGo File Count"), use_container_width=True)
 
 # =====================================================
 # MONTHLY TREND
@@ -537,9 +538,12 @@ if "Audited Date" in filtered_df.columns and len(filtered_df):
         monthly, x="Month", y="Files", color="NoGo/Go", barmode="group", text="Files",
         title="Monthly Go / NoGo Trend", color_discrete_map=GO_NOGO_MAP
     )
-    fig.update_traces(textposition="outside")
-    fig.update_xaxes(type="category", title_text="")
-    st.plotly_chart(style_fig(fig, height=420), use_container_width=True)
+    fig.update_traces(textposition="outside", texttemplate="%{text:,}")
+    fig.update_xaxes(type="category")
+    st.plotly_chart(
+        style_fig(fig, height=420, xaxis_title="Month", yaxis_title="Number of Files"),
+        use_container_width=True
+    )
 
 # =====================================================
 # USER GO / NOGO STACKED BREAKDOWN
@@ -555,9 +559,11 @@ fig = px.bar(
     chart, x="User", y="Files", color="Status", barmode="stack", text="Files",
     title="User Wise Go / NoGo Breakdown", color_discrete_map=GO_NOGO_MAP
 )
-fig.update_traces(textposition="inside")
-fig.update_xaxes(title_text="")
-st.plotly_chart(style_fig(fig, height=440), use_container_width=True)
+fig.update_traces(textposition="inside", texttemplate="%{text:,}")
+st.plotly_chart(
+    style_fig(fig, height=440, xaxis_title="User", yaxis_title="Number of Files"),
+    use_container_width=True
+)
 
 # =====================================================
 # DOWNLOADS
@@ -576,4 +582,4 @@ with d3:
 # FOOTER
 # =====================================================
 st.markdown("---")
-st.caption("Developed using Streamlit · CQA Go / NoGo Dashboard · Version 2.0")
+st.caption("Developed using Streamlit · CQA Go / NoGo Dashboard · Version 2.1")
